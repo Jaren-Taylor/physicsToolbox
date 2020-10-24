@@ -15,10 +15,12 @@ public class Pixel {
     
     private Substance occupyingSubstance;
     private Dimension gridLocation;
+    private int clockSync;
     
     public Pixel(Substance s, int x, int y) {
         occupyingSubstance = s;
         gridLocation = new Dimension(x, y);
+        clockSync = 0;
     }
     
     public boolean containsSubstance() {
@@ -39,5 +41,13 @@ public class Pixel {
     
     public void setGridLocation(int x, int y) {
         gridLocation = new Dimension(x, y);
+    }
+    
+    public int getClockSync() {
+        return clockSync;
+    }
+    
+    public void setClockSync(int cs) {
+        clockSync = cs;
     }
 }

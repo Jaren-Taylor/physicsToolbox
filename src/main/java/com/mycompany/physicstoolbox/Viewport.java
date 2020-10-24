@@ -83,7 +83,10 @@ public class Viewport extends JPanel {
         private int clock;
         private Random rand;
         
-        private boolean isMouseActive;
+        // 0 = Not clicked
+        // 1 = Left click
+        // 2 = Right click
+        private int mouseStatus;
         
         public Updater() {
             super();
@@ -91,36 +94,45 @@ public class Viewport extends JPanel {
             
             clock = 1;
             rand = new Random();
-            isMouseActive = false;
+            mouseStatus = 0;
         }
         
         // Logic that executes each tick to run the update
         @Override
         public void run() {
-            if(isMouseActive) {
+            if(mouseStatus == 1) {
                 Point mousePixel = getMouseGridLocation();
                 if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
                     grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getCurrentlySelected());
                 }
             }
+            if(mouseStatus == 2) {
+                Point mousePixel = getMouseGridLocation();
+                if(mousePixel != null && !grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.NONE);
+                }
+            }
             
-            // Grid is traversed from bottom to top to avoid repeatedly recalculating falling substances
-            for(int y = grid.length - 1; y >= 0; y--) {
-                for(int x = grid[y].length - 1; x >= 0; x--) {
-                    if(grid[y][x].containsSubstance()) {
-                        if(shouldApplyWeight(x, y)) {
-                            fallOnePixel(x, y);
-                        }
-                        
-                        if(shouldApplyViscosity(x, y)) {
-                            flowOnePixel(x, y);
+            for(int y = 0; y < grid.length; y++) {
+                for(int x = 0; x < grid[y].length; x++) {
+                    // Ensures that no single pixel of substance is calculated more than once during the iteration
+                    if(grid[y][x].getClockSync() != clock) {
+                        grid[y][x].setClockSync(clock);
+                        if(grid[y][x].containsSubstance()) {
+                            if(shouldApplyWeight(x, y)) {
+                                fallOnePixel(x, y);
+                            }
+                            
+                            if(shouldApplyViscosity(x, y)) {
+                                flowOnePixel(x, y);
+                            }
                         }
                     }
                 }
             }
             
             clock++;
-            if(clock == Long.MAX_VALUE) {
+            if(clock == Integer.MAX_VALUE) {
                 clock = 1;
             }
             repaint();
@@ -130,29 +142,30 @@ public class Viewport extends JPanel {
             substance = Substance.getCurrentlySelected();
         }
         
-        public void updateMouseStatus(boolean status) {
-            isMouseActive = status;
+        public void updateMouseStatus(int status) {
+            mouseStatus = status;
         }
         
         // Checks that the time interval for applying the substance weight has been reached
         // Also checks that the pixel below is unoccupied and is within the viewport bounds
         private boolean shouldApplyWeight(int gridX, int gridY) {
-            Pixel pixel = grid[gridY][gridX];
-            long mappedWeightInterval = Math.round(FRAME_CYCLE / pixel.getSubstance().getWeight());
+            Substance substance = grid[gridY][gridX].getSubstance();
+            // If the substance weight is 0, become a value that will ensure that the weight application is bypassed
+            long mappedWeightInterval = substance.getWeight() == 0 ? clock + 1 : Math.round(FRAME_CYCLE / Math.abs(substance.getWeight()));
             
-            boolean isLiquid = pixel.getSubstance().getState() == State.LIQUID;
-            boolean isNotOnFloor = gridY + 1 < grid.length;
-            boolean isNotAtRest = isNotOnFloor && !grid[gridY + 1][gridX].containsSubstance();
+            boolean isLiquid = substance.getState() == State.LIQUID;
+            boolean isNotFlush = (substance.getWeight() >= 0 && gridY + 1 < grid.length) || (substance.getWeight() < 0 && gridY - 1 >= 0);
+            boolean isNotAtRest = isNotFlush && !grid[gridY + (substance.getWeight() >= 0 ? 1 : -1)][gridX].containsSubstance();
             boolean weightTimerReached = mappedWeightInterval <= clock && clock % mappedWeightInterval == 0;
             
-            return isLiquid && weightTimerReached && isNotOnFloor && isNotAtRest;
+            return isLiquid && weightTimerReached && isNotFlush && isNotAtRest;
         }
         
         // Checks that the probability of a viscous flow occurrence is met
         // Also checks that the substance is configured to be able to flow
         private boolean shouldApplyViscosity(int gridX, int gridY) {
             Pixel pixel = grid[gridY][gridX];
-            Long mappedViscosityProb = Math.round((100 * pixel.getSubstance().getViscosity()) + 2);
+            Long mappedViscosityProb = Math.round((100 * pixel.getSubstance().getViscosity()) + 1);
             
             boolean isNotSolid = pixel.getSubstance().getState() != State.SOLID;
             boolean isFlowable = pixel.getSubstance().getViscosity() < 1;
@@ -161,14 +174,18 @@ public class Viewport extends JPanel {
             return isNotSolid && isFlowable && viscosityProbMet;
         }
         
-        // Swaps the current Pixel with the one below it to cause a one-pixel drop
+        // Swaps the current Pixel with the one above/below it to cause a one-pixel drop
         private void fallOnePixel(int gridX, int gridY) {
             Pixel temp = grid[gridY][gridX];
-            grid[gridY][gridX] = grid[gridY + 1][gridX];
-            grid[gridY + 1][gridX] = temp;
+            
+            // -1 denotes up, 1 denotes down
+            int fallDirection = temp.getSubstance().getWeight() >= 0 ? 1 : -1;
+            
+            grid[gridY][gridX] = grid[gridY + fallDirection][gridX];
+            grid[gridY + fallDirection][gridX] = temp;
         }
         
-        // Randomly determines a direction to flow based on the current pixel's available choices
+        // Randomly determines a sideways direction to flow based on the current pixel's available choices
         private void flowOnePixel(int gridX, int gridY) {
             boolean leftOccupied = gridX - 1 < 0 || grid[gridY][gridX - 1].containsSubstance();
             boolean rightOccupied = gridX + 1 >= grid[gridY].length || grid[gridY][gridX + 1].containsSubstance();
@@ -205,12 +222,18 @@ public class Viewport extends JPanel {
         
         @Override
         public void mousePressed(MouseEvent e) {
-            updater.updateMouseStatus(true);
+            int status = 0;
+            if(e.getButton() == MouseEvent.BUTTON1) {
+                status = 1;
+            } else if(e.getButton() == MouseEvent.BUTTON3) {
+                status = 2;
+            }
+            updater.updateMouseStatus(status);
         }
         
         @Override
         public void mouseReleased(MouseEvent e) {
-            updater.updateMouseStatus(false);
+            updater.updateMouseStatus(0);
         }
     }
 }
