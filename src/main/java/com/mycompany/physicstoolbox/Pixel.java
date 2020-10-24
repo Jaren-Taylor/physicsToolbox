@@ -21,6 +21,10 @@ public class Pixel {
         gridLocation = new Dimension(x, y);
     }
     
+    public boolean containsSubstance() {
+        return !occupyingSubstance.equals(Substance.NONE);
+    }
+    
     public Substance getSubstance() {
         return occupyingSubstance;
     }

@@ -4,9 +4,18 @@ import java.awt.Color;
 
 public class Substance {
     public static final Substance NONE = new Substance(null, null, 0, 0, 0);
+    private static Substance currentlySelected;
     
     public static Substance[] getSavedSubstances() {
         return null;
+    }
+    
+    public static Substance getCurrentlySelected() {
+        return currentlySelected;
+    }
+    
+    public static void setCurrentlySelected(Substance s) {
+        currentlySelected = s;
     }
     
     private Color color;

@@ -1,5 +1,7 @@
-com\mycompany\physicstoolbox\Main.class
 com\mycompany\physicstoolbox\Substance.class
 com\mycompany\physicstoolbox\Viewport.class
 com\mycompany\physicstoolbox\Pixel.class
+com\mycompany\physicstoolbox\Viewport$MouseListener.class
+com\mycompany\physicstoolbox\Main.class
+com\mycompany\physicstoolbox\Viewport$Updater.class
 com\mycompany\physicstoolbox\Substance$State.class
