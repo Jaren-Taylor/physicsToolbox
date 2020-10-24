@@ -3,7 +3,7 @@ package com.mycompany.physicstoolbox;
 import java.awt.Color;
 
 public class Substance {
-    public static final Substance NONE = new Substance(null, null, 0, 0, 0);
+    public static final Substance NONE = new Substance(null, null, 0, 0, 0, null);
     private static Substance currentlySelected;
     
     public static Substance[] getSavedSubstances() {
@@ -25,12 +25,13 @@ public class Substance {
     private double density;
     private State state;
     
-    public Substance(Color c, String n, double v, double w, double d) {
+    public Substance(Color c, String n, double v, double w, double d, State s) {
         color = c;
         name = n;
         viscosity = v;
         weight = w;
         density = d;
+        state = s;
     }
     
     public Color getColor() {

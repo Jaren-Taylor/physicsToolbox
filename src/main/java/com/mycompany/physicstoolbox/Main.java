@@ -1,5 +1,6 @@
 package com.mycompany.physicstoolbox;
 
+import com.mycompany.physicstoolbox.Substance.State;
 import javax.swing.*;
 import java.awt.*;
 
@@ -10,13 +11,14 @@ public class Main extends JFrame {
     public static void main (String[] args) {
         // TEMPORARY CODE
         // Sets the currently selected substance to a generic, filler instance
-        Substance.setCurrentlySelected(new Substance(new Color(255, 255, 255), "Generic", 0.5, 1, 0.5));
+        Substance.setCurrentlySelected(new Substance(new Color(255, 255, 255), "Generic", 0.99, 1, 0.5, State.LIQUID));
         
         JFrame frame = new JFrame("Physics Toolbox");
         Viewport vp = Viewport.getInstance(VIEWPORT_SIZE);
         
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setPreferredSize(WINDOW_SIZE);
+        frame.setResizable(false);
         frame.add(vp);
         
         frame.pack();
