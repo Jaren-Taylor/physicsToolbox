@@ -109,8 +109,8 @@ public class Viewport extends JPanel {
             }
             if(mouseStatus == 2) {
                 Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(new Substance(new Color(255, 0, 0), "Blood", 0.8, 1, 0.5, State.LIQUID, null));
+                if(mousePixel != null && !grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.NONE);
                 }
             }
             
@@ -118,10 +118,9 @@ public class Viewport extends JPanel {
                 for(int x = 0; x < grid[y].length; x++) {
                     // Ensures that no single pixel of substance is calculated more than once during the iteration
                     if(grid[y][x].getClockSync() != clock) {
-                        grid[y][x].setClockSync(clock);
                         if(grid[y][x].containsSubstance()) {
                             if(shouldApplyWeight(x, y)) {
-                                fallOnePixel(x, y);
+                                fallOnePixel(x, y, false);
                             }
                             
                             if(shouldApplyViscosity(x, y)) {
@@ -130,8 +129,8 @@ public class Viewport extends JPanel {
                             
                             Substance[] touchingSubstances = getTouchingSubstances(x, y);
                             if(touchingSubstances != null) {
-                                if(shouldApplyDensity(x, y, touchingSubstances[0])) {
-                                    floatOnePixel(x, y);
+                                if(shouldApplyDensity(x, y, grid[y][x].getSubstance().getWeight() >= 0 ? touchingSubstances[0] : touchingSubstances[2])) {
+                                    fallOnePixel(x, y, true);
                                 }
                             }
                         }
@@ -190,7 +189,8 @@ public class Viewport extends JPanel {
         private boolean shouldApplyDensity(int gridX, int gridY, Substance subOnTop) {
             Substance substance = grid[gridY][gridX].getSubstance();
             // No substances are above the current pixel, or the least dense substance is already on top
-            if(subOnTop == null || subOnTop.getDensity() <= substance.getDensity()) {
+            // Also checks that the pixel to be swapped hasn't already been calculated
+            if(subOnTop == null || subOnTop.getDensity() <= substance.getDensity() || grid[gridY + (substance.getWeight() >= 0 ? -1 : 1)][gridX].getClockSync() == clock) {
                 return false;
             }
             // Gases cannot be trapped under liquids, so density will always be applied in this case
@@ -207,20 +207,28 @@ public class Viewport extends JPanel {
         }
         
         // Swaps the current Pixel with the one above/below it to cause a one-pixel drop
-        private void fallOnePixel(int gridX, int gridY) {
+        // Boolean mode: FALSE denotes weight, TRUE denotes density
+        private void fallOnePixel(int gridX, int gridY, boolean mode) {
             Pixel temp = grid[gridY][gridX];
             
             // -1 denotes up, 1 denotes down
-            int fallDirection = temp.getSubstance().getWeight() >= 0 ? 1 : -1;
+            int fallDirection;
+            if(mode) {
+                fallDirection = temp.getSubstance().getWeight() >= 0 ? -1 : 1;
+            } else {
+                fallDirection = temp.getSubstance().getWeight() >= 0 ? 1 : -1;
+            }
             
             grid[gridY][gridX] = grid[gridY + fallDirection][gridX];
             grid[gridY + fallDirection][gridX] = temp;
+            
+            setClockSyncs(grid[gridY][gridX], grid[gridY + fallDirection][gridX]);
         }
         
         // Randomly determines a sideways direction to flow based on the current pixel's available choices
         private void flowOnePixel(int gridX, int gridY) {
-            boolean leftOccupied = gridX - 1 < 0 || grid[gridY][gridX - 1].containsSubstance();
-            boolean rightOccupied = gridX + 1 >= grid[gridY].length || grid[gridY][gridX + 1].containsSubstance();
+            boolean leftOccupied = gridX - 1 < 0 || grid[gridY][gridX - 1].getSubstance().equals(grid[gridY][gridX].getSubstance());
+            boolean rightOccupied = gridX + 1 >= grid[gridY].length || grid[gridY][gridX + 1].getSubstance().equals(grid[gridY][gridX].getSubstance());
             
             // -1 denotes left, 1 denotes right
             int flowDirection;
@@ -238,14 +246,14 @@ public class Viewport extends JPanel {
             Pixel temp = grid[gridY][gridX];
             grid[gridY][gridX] = grid[gridY][gridX + flowDirection];
             grid[gridY][gridX + flowDirection] = temp;
+            
+            setClockSyncs(grid[gridY][gridX], grid[gridY][gridX + flowDirection]);
         }
         
-        // Works similarly to fallOnePixel(), but the direction is always upwards
-        private void floatOnePixel(int gridX, int gridY) {
-            Pixel temp = grid[gridY][gridX];
-            
-            grid[gridY][gridX] = grid[gridY - 1][gridX];
-            grid[gridY - 1][gridX] = temp;
+        // Synchronizes the pixels involved in an interaction so they don't get recalculated in the same iteration
+        private void setClockSyncs(Pixel p1, Pixel p2) {
+            p1.setClockSync(clock);
+            p2.setClockSync(clock);
         }
         
         // Indices in this array are mapped to the directions of the touching substances

@@ -27,6 +27,16 @@ public class Substance {
     private SubstanceInteraction[] reactions;
     
     public Substance(Color c, String n, double v, double w, double d, State s, SubstanceInteraction[] r) {
+        if(v < 0 || v > 1) {
+            throw new IllegalArgumentException("Viscosity must be between 0 and 1.");
+        }
+        if(w < -1 || w > 1) {
+            throw new IllegalArgumentException("Weight must be between -1 and 1.");
+        }
+        if(d < 0 || d > 1) {
+            throw new IllegalArgumentException("Density must be between 0 and 1.");
+        }
+        
         color = c;
         name = n;
         viscosity = v;
