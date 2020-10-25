@@ -3,7 +3,7 @@ package com.mycompany.physicstoolbox;
 import java.awt.Color;
 
 public class Substance {
-    public static final Substance NONE = new Substance(null, null, 0, 0, 0, null);
+    public static final Substance NONE = new Substance(null, null, 0, 0, 0, null, null);
     private static Substance currentlySelected;
     
     public static Substance[] getSavedSubstances() {
@@ -18,24 +18,26 @@ public class Substance {
         currentlySelected = s;
     }
     
-    private Color color;
+    private Color color;      // Define using the RGB constructor only
     private String name;
-    private double viscosity;
-    private double weight;
-    private double density;
+    private double viscosity; // Range -> 0:1
+    private double weight;    // Range -> -1:1
+    private double density;   // Range -> 0:1
     private State state;
+    private SubstanceInteraction[] reactions;
     
-    public Substance(Color c, String n, double v, double w, double d, State s) {
+    public Substance(Color c, String n, double v, double w, double d, State s, SubstanceInteraction[] r) {
         color = c;
         name = n;
         viscosity = v;
         weight = w;
         density = d;
         state = s;
+        reactions = r;
     }
     
     public Color getColor() {
-        // If no color exists, return perfect transparency instead of null.
+        // If no color exists, return transparent instead of null.
         if(color == null) {
             return new Color(0, 0, 0, 0);
         }
@@ -84,6 +86,33 @@ public class Substance {
     
     public void setState(State s) {
         state = s;
+    }
+    
+    public SubstanceInteraction[] getReactions() {
+        return reactions;
+    }
+    
+    public void addReaction(SubstanceInteraction si) {
+        SubstanceInteraction[] temp = new SubstanceInteraction[reactions.length + 1];
+        
+        System.arraycopy(reactions, 0, temp, 0, reactions.length);
+        temp[reactions.length] = si;
+        
+        reactions = temp;
+    }
+    
+    public void removeReaction(SubstanceInteraction si) {
+        SubstanceInteraction[] temp = new SubstanceInteraction[reactions.length - 1];
+        
+        int j = 0;
+        for(SubstanceInteraction reaction : reactions) {
+            if (!reaction.equals(si)) {
+                temp[j] = reaction;
+                j++;
+            }
+        }
+        
+        reactions = temp;
     }
     
     public enum State {

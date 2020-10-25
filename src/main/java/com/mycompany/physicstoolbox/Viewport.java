@@ -4,6 +4,7 @@ import com.mycompany.physicstoolbox.Substance.State;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -108,8 +109,8 @@ public class Viewport extends JPanel {
             }
             if(mouseStatus == 2) {
                 Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && !grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.NONE);
+                if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
+                    grid[mousePixel.y][mousePixel.x].setSubstance(new Substance(new Color(255, 0, 0), "Blood", 0.8, 1, 0.5, State.LIQUID, null));
                 }
             }
             
@@ -125,6 +126,13 @@ public class Viewport extends JPanel {
                             
                             if(shouldApplyViscosity(x, y)) {
                                 flowOnePixel(x, y);
+                            }
+                            
+                            Substance[] touchingSubstances = getTouchingSubstances(x, y);
+                            if(touchingSubstances != null) {
+                                if(shouldApplyDensity(x, y, touchingSubstances[0])) {
+                                    floatOnePixel(x, y);
+                                }
                             }
                         }
                     }
@@ -150,8 +158,11 @@ public class Viewport extends JPanel {
         // Also checks that the pixel below is unoccupied and is within the viewport bounds
         private boolean shouldApplyWeight(int gridX, int gridY) {
             Substance substance = grid[gridY][gridX].getSubstance();
-            // If the substance weight is 0, become a value that will ensure that the weight application is bypassed
-            long mappedWeightInterval = substance.getWeight() == 0 ? clock + 1 : Math.round(FRAME_CYCLE / Math.abs(substance.getWeight()));
+            
+            if(substance.getWeight() == 0) {
+                return false;
+            }
+            long mappedWeightInterval = Math.round(FRAME_CYCLE / Math.abs(substance.getWeight()));
             
             boolean isLiquid = substance.getState() == State.LIQUID;
             boolean isNotFlush = (substance.getWeight() >= 0 && gridY + 1 < grid.length) || (substance.getWeight() < 0 && gridY - 1 >= 0);
@@ -164,14 +175,35 @@ public class Viewport extends JPanel {
         // Checks that the probability of a viscous flow occurrence is met
         // Also checks that the substance is configured to be able to flow
         private boolean shouldApplyViscosity(int gridX, int gridY) {
-            Pixel pixel = grid[gridY][gridX];
-            Long mappedViscosityProb = Math.round((100 * pixel.getSubstance().getViscosity()) + 1);
+            Substance substance = grid[gridY][gridX].getSubstance();
+            Long mappedViscosityProb = Math.round((100 * Math.pow(substance.getViscosity(), 1.5)) + 1);
             
-            boolean isNotSolid = pixel.getSubstance().getState() != State.SOLID;
-            boolean isFlowable = pixel.getSubstance().getViscosity() < 1;
+            boolean isNotSolid = substance.getState() != State.SOLID;
+            boolean isFlowable = substance.getViscosity() < 1;
             boolean viscosityProbMet = rand.nextInt(mappedViscosityProb.intValue()) == 0;
             
             return isNotSolid && isFlowable && viscosityProbMet;
+        }
+        
+        // Checks that the substance is beneath a substance with a higher density
+        // Also checks that the time interval for applying the substance density has been reached
+        private boolean shouldApplyDensity(int gridX, int gridY, Substance subOnTop) {
+            Substance substance = grid[gridY][gridX].getSubstance();
+            // No substances are above the current pixel, or the least dense substance is already on top
+            if(subOnTop == null || subOnTop.getDensity() <= substance.getDensity()) {
+                return false;
+            }
+            // Gases cannot be trapped under liquids, so density will always be applied in this case
+            if(substance.getState() == State.GAS && subOnTop.getState() == State.LIQUID) {
+                return true;
+            }
+            
+            long mappedDensityInterval = Math.round(FRAME_CYCLE / (substance.getDensity() - subOnTop.getDensity()));
+            
+            boolean areBothNotSolid = substance.getState() != State.SOLID && subOnTop.getState() != State.SOLID;
+            boolean densityTimerReached = mappedDensityInterval <= clock && clock % mappedDensityInterval == 0;
+            
+            return areBothNotSolid && densityTimerReached;
         }
         
         // Swaps the current Pixel with the one above/below it to cause a one-pixel drop
@@ -206,6 +238,35 @@ public class Viewport extends JPanel {
             Pixel temp = grid[gridY][gridX];
             grid[gridY][gridX] = grid[gridY][gridX + flowDirection];
             grid[gridY][gridX + flowDirection] = temp;
+        }
+        
+        // Works similarly to fallOnePixel(), but the direction is always upwards
+        private void floatOnePixel(int gridX, int gridY) {
+            Pixel temp = grid[gridY][gridX];
+            
+            grid[gridY][gridX] = grid[gridY - 1][gridX];
+            grid[gridY - 1][gridX] = temp;
+        }
+        
+        // Indices in this array are mapped to the directions of the touching substances
+        // 0: Above the substance in question
+        // 1: Right of the substance in question
+        // 2: Below the substance in question
+        // 3: Left the substance in question
+        private Substance[] getTouchingSubstances(int gridX, int gridY) {
+            Substance substance = grid[gridY][gridX].getSubstance();
+            
+            Substance[] array = new Substance[4];
+            array[0] = gridY - 1 >= 0 && grid[gridY - 1][gridX].containsSubstance() && !grid[gridY - 1][gridX].getSubstance().equals(substance)
+                    ? grid[gridY - 1][gridX].getSubstance() : null;
+            array[1] = gridX + 1 < grid[gridY].length && grid[gridY][gridX + 1].containsSubstance() && !grid[gridY][gridX + 1].getSubstance().equals(substance)
+                    ? grid[gridY][gridX + 1].getSubstance() : null;
+            array[2] = gridY + 1 < grid.length && grid[gridY + 1][gridX].containsSubstance() && !grid[gridY + 1][gridX].getSubstance().equals(substance)
+                    ? grid[gridY + 1][gridX].getSubstance() : null;
+            array[3] = gridX - 1 >= 0 && grid[gridY][gridX - 1].containsSubstance() && !grid[gridY][gridX - 1].getSubstance().equals(substance)
+                    ? grid[gridY][gridX - 1].getSubstance() : null;
+            
+            return !Arrays.equals(array, new Substance[] {null, null, null, null}) ? array : null;
         }
         
         // Gets cursor coordinates in terms of Pixel grid indices
