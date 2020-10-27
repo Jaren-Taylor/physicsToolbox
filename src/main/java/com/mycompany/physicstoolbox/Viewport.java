@@ -104,13 +104,13 @@ public class Viewport extends JPanel {
             if(mouseStatus == 1) {
                 Point mousePixel = getMouseGridLocation();
                 if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getCurrentlySelected());
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getDebugSubstances()[1]);
                 }
             }
             if(mouseStatus == 2) {
                 Point mousePixel = getMouseGridLocation();
                 if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getDebugSubstances()[2]);
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getDebugSubstances()[3]);
                 }
             }
             
@@ -119,20 +119,8 @@ public class Viewport extends JPanel {
                     // Ensures that no single pixel of substance is calculated more than once during the iteration
                     if(grid[y][x].getClockSync() != clock) {
                         if(grid[y][x].containsSubstance()) {
-                            if(shouldApplyWeight(x, y)) {
-                                fallOnePixel(x, y, false);
-                            }
-                            
-                            if(shouldApplyViscosity(grid[y][x].getSubstance())) {
-                                flowOnePixel(x, y);
-                            }
-                            
                             Substance[] touchingSubstances = getTouchingSubstances(x, y);
                             if(touchingSubstances != null) {
-                                if(shouldApplyDensity(x, y, grid[y][x].getSubstance().getWeight() >= 0 ? touchingSubstances[0] : touchingSubstances[2])) {
-                                    fallOnePixel(x, y, true);
-                                }
-                                
                                 SubstanceInteraction interaction;
                                 for(int s = 0; s < touchingSubstances.length; s++) {
                                     if(touchingSubstances[s] != null) {
@@ -142,6 +130,18 @@ public class Viewport extends JPanel {
                                         }
                                     }
                                 }
+                                
+                                if(shouldApplyDensity(x, y, grid[y][x].getSubstance().getWeight() >= 0 ? touchingSubstances[0] : touchingSubstances[2])) {
+                                    fallOnePixel(x, y, true);
+                                }
+                            }
+                            
+                            if(shouldApplyWeight(x, y)) {
+                                fallOnePixel(x, y, false);
+                            }
+                            
+                            if(shouldApplyViscosity(grid[y][x].getSubstance())) {
+                                flowOnePixel(x, y);
                             }
                         }
                     }
@@ -173,12 +173,11 @@ public class Viewport extends JPanel {
             }
             long mappedWeightInterval = Math.round(FRAME_CYCLE / Math.abs(substance.getWeight()));
             
-            boolean isLiquid = substance.getState() == State.LIQUID;
             boolean isNotFlush = (substance.getWeight() >= 0 && gridY + 1 < grid.length) || (substance.getWeight() < 0 && gridY - 1 >= 0);
             boolean isNotAtRest = isNotFlush && !grid[gridY + (substance.getWeight() >= 0 ? 1 : -1)][gridX].containsSubstance();
             boolean weightTimerReached = mappedWeightInterval <= clock && clock % mappedWeightInterval == 0;
             
-            return isLiquid && weightTimerReached && isNotFlush && isNotAtRest;
+            return weightTimerReached && isNotFlush && isNotAtRest;
         }
         
         // Checks that the probability of a viscous flow occurrence is met
@@ -232,7 +231,7 @@ public class Viewport extends JPanel {
                 return null;
             }
             
-            Long mappedInteractionProb = Math.round((100 * Math.pow(1 - interaction.getVolatility(), 2)) + 1);
+            Long mappedInteractionProb = Math.round((50000 * Math.pow(1 - interaction.getVolatility(), 2)) + 1);
             return rand.nextInt(mappedInteractionProb.intValue()) == 0 ? interaction : null;
         }
         
@@ -257,8 +256,8 @@ public class Viewport extends JPanel {
         
         // Randomly determines a sideways direction to flow based on the current pixel's available choices
         private void flowOnePixel(int gridX, int gridY) {
-            boolean leftOccupied = gridX - 1 < 0 || grid[gridY][gridX - 1].getSubstance().equals(grid[gridY][gridX].getSubstance());
-            boolean rightOccupied = gridX + 1 >= grid[gridY].length || grid[gridY][gridX + 1].getSubstance().equals(grid[gridY][gridX].getSubstance());
+            boolean leftOccupied = gridX - 1 < 0 || grid[gridY][gridX - 1].getSubstance().equals(grid[gridY][gridX].getSubstance()) || grid[gridY][gridX - 1].getSubstance().getState() == State.SOLID;
+            boolean rightOccupied = gridX + 1 >= grid[gridY].length || grid[gridY][gridX + 1].getSubstance().equals(grid[gridY][gridX].getSubstance()) || grid[gridY][gridX + 1].getSubstance().getState() == State.SOLID;
             
             // -1 denotes left, 1 denotes right
             int flowDirection;
@@ -343,7 +342,8 @@ public class Viewport extends JPanel {
             array[3] = gridX - 1 >= 0 && grid[gridY][gridX - 1].containsSubstance() && !grid[gridY][gridX - 1].getSubstance().equals(substance)
                     ? grid[gridY][gridX - 1].getSubstance() : null;
             
-            return !Arrays.equals(array, new Substance[] {null, null, null, null}) ? array : null;
+            // I'm too lazy to find a better way to make this comparison.
+            return array[0] == null && array[1] == null && array[2] == null && array[3] == null ? null : array;
         }
         
         // Gets cursor coordinates in terms of Pixel grid indices
