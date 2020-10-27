@@ -11,7 +11,7 @@ public class Main extends JFrame {
     public static void main (String[] args) {
         // TEMPORARY CODE
         // Sets the currently selected substance to a generic, filler instance
-        Substance.setCurrentlySelected(new Substance(new Color(255, 255, 255), "Generic", 0.5, 1, 0.5, State.LIQUID, null));
+        Substance.setCurrentlySelected(Substance.getDebugSubstances()[0]);
         
         JFrame frame = new JFrame("Physics Toolbox");
         Viewport vp = Viewport.getInstance(VIEWPORT_SIZE);

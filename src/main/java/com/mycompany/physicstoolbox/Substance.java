@@ -1,5 +1,6 @@
 package com.mycompany.physicstoolbox;
 
+import com.mycompany.physicstoolbox.SubstanceInteraction.ReactionOutcome;
 import java.awt.Color;
 
 public class Substance {
@@ -16,6 +17,19 @@ public class Substance {
     
     public static void setCurrentlySelected(Substance s) {
         currentlySelected = s;
+    }
+    
+    // TEMPORARY METHOD
+    public static Substance[] getDebugSubstances() {
+        Substance[] subs = new Substance[3];
+        subs[0] = new Substance(new Color(255, 0, 0), "Red Stuff", 0.9, 0.75, 0.8, State.LIQUID, null);
+        subs[1] = new Substance(new Color(0, 255, 0), "Green Stuff", 0.5, 1, 0.1, State.LIQUID, null);
+        subs[2] = new Substance(new Color(0, 0, 255), "Blue Stuff", 0.1, 0.5, 1, State.LIQUID, null);
+        
+        subs[0].addReaction(new SubstanceInteraction(subs[2], subs[1], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.5));
+        subs[2].addReaction(new SubstanceInteraction(subs[0], subs[1], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.5));
+        
+        return subs;
     }
     
     private Color color;      // Define using the RGB constructor only
@@ -35,6 +49,10 @@ public class Substance {
         }
         if(d < 0 || d > 1) {
             throw new IllegalArgumentException("Density must be between 0 and 1.");
+        }
+        
+        if(r == null) {
+            r = new SubstanceInteraction[0];
         }
         
         color = c;
@@ -71,6 +89,10 @@ public class Substance {
     }
     
     public void setViscosity(double v) {
+        if(v < 0 || v > 1) {
+            throw new IllegalArgumentException("Viscosity must be between 0 and 1.");
+        }
+        
         viscosity = v;
     }
     
@@ -79,6 +101,10 @@ public class Substance {
     }
     
     public void setWeight(double w) {
+        if(w < -1 || w > 1) {
+            throw new IllegalArgumentException("Weight must be between -1 and 1.");
+        }
+        
         weight = w;
     }
     
@@ -87,6 +113,10 @@ public class Substance {
     }
     
     public void setDensity(double d) {
+        if(d < 0 || d > 1) {
+            throw new IllegalArgumentException("Density must be between 0 and 1.");
+        }
+        
         density = d;
     }
     
@@ -103,6 +133,16 @@ public class Substance {
     }
     
     public void addReaction(SubstanceInteraction si) {
+        if(reactions == null) {
+            reactions = new SubstanceInteraction[0];
+        }
+        
+        for(SubstanceInteraction reaction: reactions) {
+            if(reaction.getReactant().equals(si.getReactant())) {
+                throw new IllegalArgumentException("Cannot define two different interactions with the same reactant.");
+            }
+        }
+        
         SubstanceInteraction[] temp = new SubstanceInteraction[reactions.length + 1];
         
         System.arraycopy(reactions, 0, temp, 0, reactions.length);
@@ -112,6 +152,10 @@ public class Substance {
     }
     
     public void removeReaction(SubstanceInteraction si) {
+        if(reactions.length == 0) {
+            return;
+        }
+        
         SubstanceInteraction[] temp = new SubstanceInteraction[reactions.length - 1];
         
         int j = 0;

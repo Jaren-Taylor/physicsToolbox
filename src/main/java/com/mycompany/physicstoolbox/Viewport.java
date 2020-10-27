@@ -109,8 +109,8 @@ public class Viewport extends JPanel {
             }
             if(mouseStatus == 2) {
                 Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && !grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.NONE);
+                if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getDebugSubstances()[2]);
                 }
             }
             
@@ -123,7 +123,7 @@ public class Viewport extends JPanel {
                                 fallOnePixel(x, y, false);
                             }
                             
-                            if(shouldApplyViscosity(x, y)) {
+                            if(shouldApplyViscosity(grid[y][x].getSubstance())) {
                                 flowOnePixel(x, y);
                             }
                             
@@ -131,6 +131,16 @@ public class Viewport extends JPanel {
                             if(touchingSubstances != null) {
                                 if(shouldApplyDensity(x, y, grid[y][x].getSubstance().getWeight() >= 0 ? touchingSubstances[0] : touchingSubstances[2])) {
                                     fallOnePixel(x, y, true);
+                                }
+                                
+                                SubstanceInteraction interaction;
+                                for(int s = 0; s < touchingSubstances.length; s++) {
+                                    if(touchingSubstances[s] != null) {
+                                        interaction = shouldApplyInteraction(grid[y][x].getSubstance(), touchingSubstances[s]);
+                                        if(interaction != null) {
+                                            interact(interaction, x, y, s);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -173,8 +183,7 @@ public class Viewport extends JPanel {
         
         // Checks that the probability of a viscous flow occurrence is met
         // Also checks that the substance is configured to be able to flow
-        private boolean shouldApplyViscosity(int gridX, int gridY) {
-            Substance substance = grid[gridY][gridX].getSubstance();
+        private boolean shouldApplyViscosity(Substance substance) {
             Long mappedViscosityProb = Math.round((100 * Math.pow(substance.getViscosity(), 1.5)) + 1);
             
             boolean isNotSolid = substance.getState() != State.SOLID;
@@ -204,6 +213,27 @@ public class Viewport extends JPanel {
             boolean densityTimerReached = mappedDensityInterval <= clock && clock % mappedDensityInterval == 0;
             
             return areBothNotSolid && densityTimerReached;
+        }
+        
+        // Checks that two touching substances have an interaction defined between them
+        // Also checks that the time interval for applying the interaction has been reached
+        // Returns the interaction object to be used in the interact() method if one should occur
+        private SubstanceInteraction shouldApplyInteraction(Substance src, Substance rct) {
+            SubstanceInteraction interaction = null;
+            // Check source reaction list
+            for(SubstanceInteraction i: src.getReactions()) {
+                if(i.getReactant().equals(rct)) {
+                    interaction = i;
+                }
+            }
+            
+            // The touching substances are not set to react
+            if(interaction == null) {
+                return null;
+            }
+            
+            Long mappedInteractionProb = Math.round((100 * Math.pow(1 - interaction.getVolatility(), 2)) + 1);
+            return rand.nextInt(mappedInteractionProb.intValue()) == 0 ? interaction : null;
         }
         
         // Swaps the current Pixel with the one above/below it to cause a one-pixel drop
@@ -248,6 +278,45 @@ public class Viewport extends JPanel {
             grid[gridY][gridX + flowDirection] = temp;
             
             setClockSyncs(grid[gridY][gridX], grid[gridY][gridX + flowDirection]);
+        }
+        
+        private void interact(SubstanceInteraction interaction, int gridX, int gridY, int i) {
+            // Maps the direction of the touching substance based on its index in the touchingSubstances array
+            int rctX = i == 0 || i == 2 ? 0 : i == 1 ? 1 : -1;
+            int rctY = i == 1 || i == 3 ? 0 : i == 0 ? -1 : 1;
+            
+            Pixel src = grid[gridY][gridX];
+            Pixel rct = grid[gridY + rctY][gridX + rctX];
+            
+            switch(interaction.getSourceOutcome()) {
+                case UNCHANGED: {
+                    break;
+                }
+                case CHANGED: {
+                    src.setSubstance(interaction.getProduct());
+                    break;
+                }
+                case DESTROYED: {
+                    src.setSubstance(Substance.NONE);
+                    break;
+                }
+            }
+            
+            switch(interaction.getReactantOutcome()) {
+                case UNCHANGED: {
+                    break;
+                }
+                case CHANGED: {
+                    rct.setSubstance(interaction.getProduct());
+                    break;
+                }
+                case DESTROYED: {
+                    rct.setSubstance(Substance.NONE);
+                    break;
+                }
+            }
+            
+            setClockSyncs(src, rct);
         }
         
         // Synchronizes the pixels involved in an interaction so they don't get recalculated in the same iteration
