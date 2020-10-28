@@ -13,6 +13,7 @@ public class Main extends JFrame {
         // Sets the currently selected substance to a generic, filler instance
         Substance.initializeDebugSubstances();
         Substance.setCurrentlySelected(Substance.getDebugSubstances()[0]);
+        Substance.setAlternateSelected(Substance.getDebugSubstances()[1]);
         
         JFrame frame = new JFrame("Physics Toolbox");
         Viewport vp = Viewport.getInstance(VIEWPORT_SIZE);

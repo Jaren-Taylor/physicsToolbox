@@ -129,19 +129,41 @@ public class Viewport extends JPanel {
             mouseStatus = status;
         }
         
+        public void debugClick(int status) {
+            Substance[] debugs = Substance.getDebugSubstances();
+            int index = 0;
+            int altIndex = 0;
+            for(int i = 0; i < debugs.length; i++) {
+                if(debugs[i].equals(Substance.getCurrentlySelected())) {
+                    index = i;
+                }
+            }
+            for(int i = 0; i < debugs.length; i++) {
+                if(debugs[i].equals(Substance.getAlternateSelected())) {
+                    altIndex = i;
+                }
+            }
+            
+            if(status == 3) {
+                Substance.setCurrentlySelected(index == debugs.length - 1 ? debugs[0] : debugs[index + 1]);
+            } else if(status == 4) {
+                Substance.setAlternateSelected(altIndex == debugs.length - 1 ? debugs[0] : debugs[altIndex + 1]);
+            }
+        }
+        
         // Logic that executes each tick to run the update
         @Override
         public void run() {
             if(mouseStatus == 1) {
                 Point mousePixel = getMouseGridLocation();
                 if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getDebugSubstances()[2]);
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getCurrentlySelected());
                 }
             }
             if(mouseStatus == 2) {
                 Point mousePixel = getMouseGridLocation();
                 if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getDebugSubstances()[4]);
+                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getAlternateSelected());
                 }
             }
             
@@ -165,7 +187,7 @@ public class Viewport extends JPanel {
                                     }
                                 }
                                 
-                                if(shouldApplyDensity(substance, neighbors[0], neighbors[2])) {
+                                if(substance.getState() != State.SOLID && shouldApplyDensity(substance, neighbors[0], neighbors[2])) {
                                     fallOnePixel(grid[y][x], neighbors[0], neighbors[2], true);
                                 }
                             }
@@ -237,7 +259,7 @@ public class Viewport extends JPanel {
             Pixel neighbor = sub.getWeight() >= 0 ? top : bottom;
             // No substances are above the current pixel, or the least dense substance is already on top
             // Also checks that the pixel to be swapped hasn't already been calculated
-            if(!neighbor.containsSubstance() || neighbor.getSubstance().getDensity() <= sub.getDensity() || neighbor.getClockSync() == clock) {
+            if(neighbor == null || !neighbor.containsSubstance() || neighbor.getSubstance().getDensity() <= sub.getDensity() || neighbor.getClockSync() == clock) {
                 return false;
             }
             // Gases cannot be trapped under liquids, and solids cannot be displaced
@@ -290,6 +312,7 @@ public class Viewport extends JPanel {
                 neighbor = sub.getWeight() >= 0 ? bottom : top;
             }
             
+            // Applying the corresponding drop by flipping the pixels
             Point m = main.getGridLocation();
             Point n = neighbor.getGridLocation();
             
@@ -323,7 +346,7 @@ public class Viewport extends JPanel {
                 neighbor = !rand.nextBoolean() ? first : second;
             }
             
-            // Applying the corresponding flow
+            // Applying the corresponding flow by flipping the pixels
             Point m = main.getGridLocation();
             Point n = neighbor.getGridLocation();
             
@@ -430,11 +453,21 @@ public class Viewport extends JPanel {
         @Override
         public void mousePressed(MouseEvent e) {
             int status = 0;
-            if(e.getButton() == MouseEvent.BUTTON1) {
-                status = 1;
-            } else if(e.getButton() == MouseEvent.BUTTON3) {
-                status = 2;
+            switch(e.getButton()) {
+                case MouseEvent.BUTTON1 ->  {
+                    status = 1;
+                }
+                case MouseEvent.BUTTON3 ->  {
+                    status = 2;
+                }
+                case 5 ->  {
+                    updater.debugClick(3);
+                }
+                case 4 ->  {
+                    updater.debugClick(4);
+                }
             }
+            
             updater.updateMouseStatus(status);
         }
         
