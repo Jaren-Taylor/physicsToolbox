@@ -1,6 +1,7 @@
 package com.mycompany.physicstoolbox;
 
 import java.awt.Dimension;
+import java.awt.Point;
 
 public class Pixel {
     private static Dimension renderSize;
@@ -14,12 +15,12 @@ public class Pixel {
     }
     
     private Substance occupyingSubstance;
-    private Dimension gridLocation;
+    private Point gridLocation;
     private int clockSync;
     
     public Pixel(Substance s, int x, int y) {
         occupyingSubstance = s;
-        gridLocation = new Dimension(x, y);
+        gridLocation = new Point(x, y);
         clockSync = 0;
     }
     
@@ -35,12 +36,12 @@ public class Pixel {
         occupyingSubstance = s;
     }
     
-    public Dimension getGridLocation() {
+    public Point getGridLocation() {
         return gridLocation;
     }
     
     public void setGridLocation(int x, int y) {
-        gridLocation = new Dimension(x, y);
+        gridLocation = new Point(x, y);
     }
     
     public int getClockSync() {

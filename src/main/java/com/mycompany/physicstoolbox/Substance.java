@@ -33,10 +33,11 @@ public class Substance {
         subs[0] = new Substance(new Color(255, 0, 0), "Red Stuff", 0.9, 0.75, 0.8, State.LIQUID);
         subs[1] = new Substance(new Color(0, 255, 0), "Green Stuff", 0.5, -1, 0.7, State.LIQUID);
         subs[2] = new Substance(new Color(0, 0, 255), "Blue Stuff", 0.1, 0.5, 0.1, State.LIQUID);
-        subs[3] = new Substance(new Color(255, 255, 0), "Yellow Stuff", 0.5, 0.5, 0.5, State.GAS);
+        subs[3] = new Substance(new Color(255, 255, 0), "Yellow Stuff", 0.5, 0.5, 1, State.GAS);
         subs[4] = new Substance(new Color(128, 128, 128), "Gray Stuff", 0.1, 0.5, 0.1, State.SOLID);
         
-        subs[0].addReaction(new SubstanceInteraction(subs[2], subs[1], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.5));
+        subs[0].addReaction(new SubstanceInteraction(subs[2], subs[1], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.3));
+        subs[2].addReaction(new SubstanceInteraction(subs[4], subs[4], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 1));
         subs[3].addReaction(new SubstanceInteraction(subs[1], subs[2], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.8));
         
         debugSubs = subs;
@@ -67,6 +68,7 @@ public class Substance {
         weight = s == State.SOLID || s == State.GAS ? 0 : w;
         density = d;
         state = s;
+        reactions = new SubstanceInteraction[0];
     }
     
     public Color getColor() {
@@ -182,6 +184,14 @@ public class Substance {
         if(!si.getReactant().equals(Substance.NONE)) {
             si.getReactant().removeReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
         }
+    }
+    
+    public void resetReactions() {
+        for(SubstanceInteraction reaction: reactions) {
+            reaction.getReactant().removeReaction(new SubstanceInteraction(this, reaction.getProduct(), reaction.getReactantOutcome(), reaction.getSourceOutcome(), reaction.getVolatility()));
+        }
+        
+        reactions = new SubstanceInteraction[0];
     }
     
     public boolean reactsWith(Substance sub) {
