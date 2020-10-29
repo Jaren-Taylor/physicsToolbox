@@ -4,6 +4,7 @@ import com.mycompany.physicstoolbox.Substance.State;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,18 +56,13 @@ public class Viewport extends JPanel {
         
         setPreferredSize(size);
         setBackground(backgroundColor);
-        addMouseListener(new MouseListener());
+        
+        MouseListener listener = new MouseListener();
+        addMouseListener(listener);
+        addMouseWheelListener(listener);
         
         // Starts the timer that will run the update calculations at 60 FPS
         TIMER.scheduleAtFixedRate(updater, 0, TIMER_SPEED);
-    }
-    
-    public void setBrushSize(int size) {
-        if(size <= 0) {
-            throw new IllegalArgumentException("Invalid brush size.");
-        }
-        
-        brushSize = size;
     }
     
     public void setBackgroundColor(Color c) {
@@ -74,19 +70,25 @@ public class Viewport extends JPanel {
         setBackground(c);
     }
     
+    public void resetViewport() {
+        for(Pixel[] y : grid) {
+            for(Pixel xy : y) {
+                xy.setSubstance(Substance.NONE);
+            }
+        }
+    }
+    
     @Override
     public void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
         
         Point gridLocation = new Point(0, 0);
-        for(int y = 0; y < grid.length; y++) {
-            for(int x = 0; x < grid[y].length; x++) {
-                graphics.setColor(grid[y][x].getSubstance().getColor());
+        for(Pixel[] y : grid) {
+            for(Pixel xy : y) {
+                graphics.setColor(xy.getSubstance().getColor());
                 graphics.fillRect(gridLocation.x, gridLocation.y, Pixel.getRenderSize().width, Pixel.getRenderSize().height);
-                
                 gridLocation.x += Pixel.getRenderSize().width;
             }
-            
             gridLocation.x = 0;
             gridLocation.y += Pixel.getRenderSize().height;
         }
@@ -155,15 +157,23 @@ public class Viewport extends JPanel {
         @Override
         public void run() {
             if(mouseStatus == 1) {
-                Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getCurrentlySelected());
+                Pixel[] pixels = getPixelsInBrush();
+                if(pixels != null) {
+                    for(Pixel p: pixels) {
+                        if(p.getSubstance().equals(Substance.NONE)) {
+                            p.setSubstance(Substance.getCurrentlySelected());
+                        }
+                    }
                 }
             }
             if(mouseStatus == 2) {
-                Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getAlternateSelected());
+                Pixel[] pixels = getPixelsInBrush();
+                if(pixels != null) {
+                    for(Pixel p: pixels) {
+                        if(p.getSubstance().equals(Substance.NONE)) {
+                            p.setSubstance(Substance.getAlternateSelected());
+                        }
+                    }
                 }
             }
             
@@ -248,7 +258,7 @@ public class Viewport extends JPanel {
                 return false;
             }
             
-            Long mappedViscosityProb = Math.round((100 * Math.pow(sub.getViscosity(), 1.5)) + 1);
+            Long mappedViscosityProb = Math.round((100 * Math.pow(sub.getViscosity(), 2)) + 1);
             
             return rand.nextInt(mappedViscosityProb.intValue()) == 0;
         }
@@ -312,6 +322,10 @@ public class Viewport extends JPanel {
                 neighbor = sub.getWeight() >= 0 ? bottom : top;
             }
             
+            if(neighbor == null) {
+                return;
+            }
+            
             // Applying the corresponding drop by flipping the pixels
             Point m = main.getGridLocation();
             Point n = neighbor.getGridLocation();
@@ -344,6 +358,10 @@ public class Viewport extends JPanel {
                 neighbor = second;
             } else {
                 neighbor = !rand.nextBoolean() ? first : second;
+            }
+            
+            if(neighbor == null) {
+                return;
             }
             
             // Applying the corresponding flow by flipping the pixels
@@ -411,38 +429,40 @@ public class Viewport extends JPanel {
         private Substance[] getTouchingSubstances(Pixel[] neighbors, Substance sub) {
             Substance[] array = new Substance[4];
             
-            array[0] = neighbors[0] != null && neighbors[0].containsSubstance() && !neighbors[0].getSubstance().equals(sub) ? neighbors[0].getSubstance() : null;
-            array[1] = neighbors[1] != null && neighbors[1].containsSubstance() && !neighbors[1].getSubstance().equals(sub) ? neighbors[1].getSubstance() : null;
-            array[2] = neighbors[2] != null && neighbors[2].containsSubstance() && !neighbors[2].getSubstance().equals(sub) ? neighbors[2].getSubstance() : null;
-            array[3] = neighbors[3] != null && neighbors[3].containsSubstance() && !neighbors[3].getSubstance().equals(sub) ? neighbors[3].getSubstance() : null;
+            array[0] = neighbors[0] != null && !neighbors[0].getSubstance().equals(sub) ? neighbors[0].getSubstance() : null;
+            array[1] = neighbors[1] != null && !neighbors[1].getSubstance().equals(sub) ? neighbors[1].getSubstance() : null;
+            array[2] = neighbors[2] != null && !neighbors[2].getSubstance().equals(sub) ? neighbors[2].getSubstance() : null;
+            array[3] = neighbors[3] != null && !neighbors[3].getSubstance().equals(sub) ? neighbors[3].getSubstance() : null;
             
             return !Arrays.equals(array, new Substance[] {null, null, null, null}) ? array : null;
         }
         
         // Gets cursor coordinates in terms of Pixel grid indices
-        private Point getMouseGridLocation() {
+        // Builds circle of pixels with radius = brushSize
+        private Pixel[] getPixelsInBrush() {
             Point mouse = getMousePosition();
-            return mouse == null ? null : new Point(Math.floorDiv(mouse.x, Pixel.getRenderSize().width), Math.floorDiv(mouse.y, Pixel.getRenderSize().height));
+            if(mouse == null) {
+                return null;
+            }
+            
+            List<Pixel> list = new ArrayList<>();
+            Point pixel = new Point(Math.floorDiv(mouse.x, Pixel.getRenderSize().width), Math.floorDiv(mouse.y, Pixel.getRenderSize().height));
+            
+            int yDiff = -brushSize;
+            do {
+                int xDiff = (int) -Math.sqrt(Math.abs(Math.ceil(Math.pow(brushSize, 2) - Math.pow(yDiff, 2))));
+                do {
+                    if(pixel.x + xDiff >= 0 && pixel.x + xDiff < grid[pixel.y].length && pixel.y + yDiff >= 0 && pixel.y + yDiff < grid.length) {
+                        list.add(grid[pixel.y + yDiff][pixel.x + xDiff]);
+                    }
+                    xDiff++;
+                } while(xDiff <= (int) Math.sqrt(Math.abs(Math.ceil(Math.pow(brushSize, 2) - Math.pow(yDiff, 2)))));
+                yDiff++;
+            } while(yDiff <= brushSize);
+            
+            Pixel[] array = new Pixel[list.size()];
+            return list.toArray(array);
         }
-        
-//        private Pixel[] getPixelsInBrush() {
-//            Point mouse = getMousePosition();
-//            if(mouse == null) {
-//                return null;
-//            }
-//            
-//            List<Pixel> list = new ArrayList<>();
-//            Point pixel = new Point(Math.floorDiv(mouse.x, Pixel.getRenderSize().width), Math.floorDiv(mouse.y, Pixel.getRenderSize().height));
-//            
-//            int yDiff = 0;
-//            do {
-//                int xDiff = 0;
-//                do {
-//                    list.add(grid[pixel.y + yDiff][pixel.x + xDiff]);
-//                    xDiff = 
-//                } while();
-//            } while();
-//        }
     }
     
     private class MouseListener extends MouseAdapter {
@@ -456,6 +476,9 @@ public class Viewport extends JPanel {
             switch(e.getButton()) {
                 case MouseEvent.BUTTON1 ->  {
                     status = 1;
+                }
+                case MouseEvent.BUTTON2 ->  {
+                    resetViewport();
                 }
                 case MouseEvent.BUTTON3 ->  {
                     status = 2;
@@ -474,6 +497,15 @@ public class Viewport extends JPanel {
         @Override
         public void mouseReleased(MouseEvent e) {
             updater.updateMouseStatus(0);
+        }
+        
+        @Override
+        public void mouseWheelMoved(MouseWheelEvent e) {
+            if(e.getPreciseWheelRotation() < 0) {
+                brushSize = brushSize >= 20 ? 20 : brushSize + 1;
+            } else {
+                brushSize = brushSize <= 1 ? 1 : brushSize - 1;
+            }
         }
     }
 }

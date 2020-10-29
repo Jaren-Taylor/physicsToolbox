@@ -37,18 +37,20 @@ public class Substance {
     
     // TEMPORARY METHOD
     public static void initializeDebugSubstances() {
-        Substance[] subs = new Substance[6];
-        subs[0] = new Substance(new Color(255, 0, 0), "Red Stuff", 0.9, 0.75, 0.8, State.LIQUID);
-        subs[1] = new Substance(new Color(0, 255, 0), "Green Stuff", 0.5, -1, 0.7, State.LIQUID);
-        subs[2] = new Substance(new Color(0, 0, 255), "Blue Stuff", 0.1, 0.5, 0.1, State.LIQUID);
-        subs[3] = new Substance(new Color(255, 255, 0), "Yellow Stuff", 0.5, 0.5, 1, State.GAS);
-        subs[4] = new Substance(new Color(200, 50, 255), "Purple Stuff", 0, -0.6, 0.2, State.GAS);
-        subs[5] = new Substance(new Color(128, 128, 128), "Gray Stuff", 0.1, 0.5, 0.1, State.SOLID);
+        Substance[] subs = new Substance[7];
+        subs[0] = new Substance(new Color(255, 100, 0), "Fire", 0.1, -0.75, 0, State.LIQUID);
+        subs[1] = new Substance(new Color(255, 0, 0), "Red Stuff", 0.9, 0.75, 0.8, State.LIQUID);
+        subs[2] = new Substance(new Color(0, 255, 0), "Green Stuff", 0.5, -1, 0.7, State.LIQUID);
+        subs[3] = new Substance(new Color(0, 0, 255), "Blue Stuff", 0.1, 0.5, 0.1, State.LIQUID);
+        subs[4] = new Substance(new Color(255, 255, 0), "Yellow Stuff", 0.5, 0.5, 1, State.GAS);
+        subs[5] = new Substance(new Color(200, 50, 255), "Purple Stuff", 0, -0.6, 0.2, State.GAS);
+        subs[6] = new Substance(new Color(128, 128, 128), "Gray Stuff", 0.1, 0.5, 0.1, State.SOLID);
         
-        subs[0].addReaction(new SubstanceInteraction(subs[2], subs[1], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.3));
-        subs[2].addReaction(new SubstanceInteraction(subs[5], subs[5], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 1));
-        subs[3].addReaction(new SubstanceInteraction(subs[1], subs[2], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.8));
-        subs[4].addReaction(new SubstanceInteraction(subs[5], subs[2], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.75));
+        subs[0].addReaction(SubstanceInteraction.decayReaction(0.9));
+        subs[1].addReaction(new SubstanceInteraction(subs[3], subs[2], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.3));
+        subs[3].addReaction(new SubstanceInteraction(subs[6], subs[6], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 1));
+        subs[4].addReaction(new SubstanceInteraction(subs[2], subs[3], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.8));
+        subs[5].addReaction(new SubstanceInteraction(subs[6], subs[3], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.75));
         
         debugSubs = subs;
     }
@@ -169,7 +171,7 @@ public class Substance {
         
         reactions = temp;
         
-        if(!si.getReactant().equals(Substance.NONE) && !si.getReactant().reactsWith(this)) {
+        if(!si.getReactant().equals(this) && !si.getReactant().equals(Substance.NONE) && !si.getReactant().reactsWith(this)) {
             si.getReactant().addReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
         }
     }
