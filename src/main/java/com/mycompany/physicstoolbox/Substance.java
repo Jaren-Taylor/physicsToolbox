@@ -76,7 +76,7 @@ public class Substance {
         
         color = c;
         name = n;
-        viscosity = s == State.SOLID ? 1 : s == State.GAS ? 0.5 : v;
+        viscosity = s == State.SOLID ? 1 : s == State.GAS ? 0 : v;
         weight = s == State.SOLID || s == State.GAS ? 0 : w;
         density = d;
         state = s;

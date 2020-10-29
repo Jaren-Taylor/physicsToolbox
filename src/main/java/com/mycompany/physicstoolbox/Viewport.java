@@ -237,12 +237,18 @@ public class Viewport extends JPanel {
             if(sub.getWeight() == 0) {
                 return false;
             }
+            
+            Pixel neighbor = sub.getWeight() > 0 ? bottom : top;
             // Substance is against the top/bottom edge of the viewport
-            if((sub.getWeight() > 0 && bottom == null) || (sub.getWeight() < 0 && top == null)) {
+            if(neighbor == null) {
                 return false;
             }
-            // Substance is against another substance
-            if((sub.getWeight() > 0 ? bottom : top).containsSubstance()) {
+            // Solids cannot be displaced
+            if(neighbor.getSubstance().getState() == State.SOLID) {
+                return false;
+            }
+            // Substance is against another substance with the same fall direction
+            if(neighbor.containsSubstance() && (sub.getWeight() > 0 ? (neighbor.getSubstance().getWeight() >= 0) : (neighbor.getSubstance().getWeight() <= 0))) {
                 return false;
             }
             
@@ -317,7 +323,12 @@ public class Viewport extends JPanel {
             
             Pixel neighbor;
             if(mode) {
-                neighbor = sub.getWeight() >= 0 ? top : bottom;
+                // Ensures that substances with opposite weights don't fall into each other the wrong way
+                if(sub.getWeight() >= 0) {
+                    neighbor = top.getSubstance().getWeight() < 0 ? null : top;
+                } else {
+                    neighbor = bottom.getSubstance().getWeight() >= 0 ? null : bottom;
+                }
             } else {
                 neighbor = sub.getWeight() >= 0 ? bottom : top;
             }
@@ -413,7 +424,7 @@ public class Viewport extends JPanel {
         // 0: Above the substance in question
         // 1: Right of the substance in question
         // 2: Below the substance in question
-        // 3: Left the substance in question
+        // 3: Left of the substance in question
         private Pixel[] getNeighborPixels(int gridX, int gridY) {
             Pixel[] array = new Pixel[4];
             
