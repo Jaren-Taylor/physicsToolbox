@@ -4,6 +4,9 @@ import com.mycompany.physicstoolbox.Substance.State;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.Timer;
@@ -35,11 +38,13 @@ public class Viewport extends JPanel {
     
     private Color backgroundColor;
     private Pixel[][] grid;
+    private int brushSize;
     
     private Viewport(Dimension size) {
         super();
         backgroundColor = new Color(0, 0, 0);
         grid = new Pixel[PIXEL_GRID_HEIGHT][PIXEL_GRID_WIDTH];
+        brushSize = 4;
         
         Pixel.setRenderSize(size.width / PIXEL_GRID_WIDTH, size.height / PIXEL_GRID_HEIGHT);
         
@@ -51,10 +56,26 @@ public class Viewport extends JPanel {
         
         setPreferredSize(size);
         setBackground(backgroundColor);
-        addMouseListener(new MouseListener());
+        
+        MouseListener listener = new MouseListener();
+        addMouseListener(listener);
+        addMouseWheelListener(listener);
         
         // Starts the timer that will run the update calculations at 60 FPS
         TIMER.scheduleAtFixedRate(updater, 0, TIMER_SPEED);
+    }
+    
+    public void setBackgroundColor(Color c) {
+        backgroundColor = c;
+        setBackground(c);
+    }
+    
+    public void resetViewport() {
+        for(Pixel[] y : grid) {
+            for(Pixel xy : y) {
+                xy.setSubstance(Substance.NONE);
+            }
+        }
     }
     
     @Override
@@ -62,23 +83,32 @@ public class Viewport extends JPanel {
         super.paintComponent(graphics);
         
         Point gridLocation = new Point(0, 0);
-        for(int y = 0; y < grid.length; y++) {
-            for(int x = 0; x < grid[y].length; x++) {
-                graphics.setColor(grid[y][x].getSubstance().getColor());
+        for(Pixel[] y : grid) {
+            for(Pixel xy : y) {
+                graphics.setColor(xy.getSubstance().getColor());
                 graphics.fillRect(gridLocation.x, gridLocation.y, Pixel.getRenderSize().width, Pixel.getRenderSize().height);
-                
                 gridLocation.x += Pixel.getRenderSize().width;
             }
-            
             gridLocation.x = 0;
             gridLocation.y += Pixel.getRenderSize().height;
+        }
+        
+        Point mouse = getMousePosition();
+        if(mouse != null) {
+            int cursorR = backgroundColor.getRed() - 127;
+            int cursorG = backgroundColor.getGreen() - 127;
+            int cursorB = backgroundColor.getBlue() - 127;
+            
+            graphics.setColor(new Color(128 - cursorR, 128 - cursorG, 128 - cursorB));
+            graphics.drawOval(mouse.x - (brushSize * Pixel.getRenderSize().width),
+                              mouse.y - (brushSize * Pixel.getRenderSize().height),
+                              brushSize * 2 * Pixel.getRenderSize().width,
+                              brushSize * 2 * Pixel.getRenderSize().height);
         }
     }
     
     // The class that contains all the information to update the viewport at 60 FPS
     private class Updater extends TimerTask {
-        private Substance substance;
-        
         // The smaller this number is, the faster the substances move in the viewport
         private final int FRAME_CYCLE = 8;
         private int clock;
@@ -91,26 +121,59 @@ public class Viewport extends JPanel {
         
         public Updater() {
             super();
-            updateSelectedSubstance();
             
             clock = 1;
             rand = new Random();
             mouseStatus = 0;
         }
         
+        public void updateMouseStatus(int status) {
+            mouseStatus = status;
+        }
+        
+        public void debugClick(int status) {
+            Substance[] debugs = Substance.getDebugSubstances();
+            int index = 0;
+            int altIndex = 0;
+            for(int i = 0; i < debugs.length; i++) {
+                if(debugs[i].equals(Substance.getCurrentlySelected())) {
+                    index = i;
+                }
+            }
+            for(int i = 0; i < debugs.length; i++) {
+                if(debugs[i].equals(Substance.getAlternateSelected())) {
+                    altIndex = i;
+                }
+            }
+            
+            if(status == 3) {
+                Substance.setCurrentlySelected(index == debugs.length - 1 ? debugs[0] : debugs[index + 1]);
+            } else if(status == 4) {
+                Substance.setAlternateSelected(altIndex == debugs.length - 1 ? debugs[0] : debugs[altIndex + 1]);
+            }
+        }
+        
         // Logic that executes each tick to run the update
         @Override
         public void run() {
             if(mouseStatus == 1) {
-                Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.getCurrentlySelected());
+                Pixel[] pixels = getPixelsInBrush();
+                if(pixels != null) {
+                    for(Pixel p: pixels) {
+                        if(p.getSubstance().equals(Substance.NONE)) {
+                            p.setSubstance(Substance.getCurrentlySelected());
+                        }
+                    }
                 }
             }
             if(mouseStatus == 2) {
-                Point mousePixel = getMouseGridLocation();
-                if(mousePixel != null && !grid[mousePixel.y][mousePixel.x].getSubstance().equals(Substance.NONE)) {
-                    grid[mousePixel.y][mousePixel.x].setSubstance(Substance.NONE);
+                Pixel[] pixels = getPixelsInBrush();
+                if(pixels != null) {
+                    for(Pixel p: pixels) {
+                        if(p.getSubstance().equals(Substance.NONE)) {
+                            p.setSubstance(Substance.getAlternateSelected());
+                        }
+                    }
                 }
             }
             
@@ -119,18 +182,40 @@ public class Viewport extends JPanel {
                     // Ensures that no single pixel of substance is calculated more than once during the iteration
                     if(grid[y][x].getClockSync() != clock) {
                         if(grid[y][x].containsSubstance()) {
-                            if(shouldApplyWeight(x, y)) {
-                                fallOnePixel(x, y, false);
-                            }
+                            Substance substance = grid[y][x].getSubstance();
+                            Pixel[] neighbors = getNeighborPixels(x, y);
+                            Substance[] touchingSubstances = getTouchingSubstances(neighbors, substance);
                             
-                            if(shouldApplyViscosity(x, y)) {
-                                flowOnePixel(x, y);
-                            }
-                            
-                            Substance[] touchingSubstances = getTouchingSubstances(x, y);
                             if(touchingSubstances != null) {
-                                if(shouldApplyDensity(x, y, grid[y][x].getSubstance().getWeight() >= 0 ? touchingSubstances[0] : touchingSubstances[2])) {
-                                    fallOnePixel(x, y, true);
+                                SubstanceInteraction interaction;
+                                for(int s = 0; s < touchingSubstances.length; s++) {
+                                    if(touchingSubstances[s] != null) {
+                                        interaction = shouldApplyInteraction(substance, touchingSubstances[s]);
+                                        if(interaction != null) {
+                                            interact(interaction, grid[y][x], neighbors[s]);
+                                        }
+                                    }
+                                }
+                                
+                                if(substance.getState() != State.SOLID && shouldApplyDensity(substance, neighbors[0], neighbors[2])) {
+                                    fallOnePixel(grid[y][x], neighbors[0], neighbors[2], true);
+                                }
+                            }
+                            
+                            // Different substance states should act differently
+                            // Solids do not fall nor flow in any way, so no behavior is defined for them
+                            if(substance.getState() == State.GAS) {
+                                if(shouldApplyGas(substance)) {
+                                    boolean direction = rand.nextBoolean();
+                                    flowOnePixel(grid[y][x], direction ? neighbors[3] : neighbors[0], direction ? neighbors[1] : neighbors[2]);
+                                }
+                            } else if(substance.getState() == State.LIQUID) {
+                                if(shouldApplyWeight(substance, neighbors[0], neighbors[2])) {
+                                    fallOnePixel(grid[y][x], neighbors[0], neighbors[2], false);
+                                }
+
+                                if(shouldApplyViscosity(substance)) {
+                                    flowOnePixel(grid[y][x], neighbors[3], neighbors[1]);
                                 }
                             }
                         }
@@ -145,109 +230,188 @@ public class Viewport extends JPanel {
             repaint();
         }
         
-        public void updateSelectedSubstance() {
-            substance = Substance.getCurrentlySelected();
-        }
-        
-        public void updateMouseStatus(int status) {
-            mouseStatus = status;
-        }
-        
         // Checks that the time interval for applying the substance weight has been reached
-        // Also checks that the pixel below is unoccupied and is within the viewport bounds
-        private boolean shouldApplyWeight(int gridX, int gridY) {
-            Substance substance = grid[gridY][gridX].getSubstance();
-            
-            if(substance.getWeight() == 0) {
+        // Also checks that the pixel above/below is unoccupied and is within the viewport bounds
+        private boolean shouldApplyWeight(Substance sub, Pixel top, Pixel bottom) {
+            // Substance has no weight
+            if(sub.getWeight() == 0) {
                 return false;
             }
-            long mappedWeightInterval = Math.round(FRAME_CYCLE / Math.abs(substance.getWeight()));
             
-            boolean isLiquid = substance.getState() == State.LIQUID;
-            boolean isNotFlush = (substance.getWeight() >= 0 && gridY + 1 < grid.length) || (substance.getWeight() < 0 && gridY - 1 >= 0);
-            boolean isNotAtRest = isNotFlush && !grid[gridY + (substance.getWeight() >= 0 ? 1 : -1)][gridX].containsSubstance();
-            boolean weightTimerReached = mappedWeightInterval <= clock && clock % mappedWeightInterval == 0;
+            Pixel neighbor = sub.getWeight() > 0 ? bottom : top;
+            // Substance is against the top/bottom edge of the viewport
+            if(neighbor == null) {
+                return false;
+            }
+            // Solids cannot be displaced
+            if(neighbor.getSubstance().getState() == State.SOLID) {
+                return false;
+            }
+            // Substance is against another substance with the same fall direction
+            if(neighbor.containsSubstance() && (sub.getWeight() > 0 ? (neighbor.getSubstance().getWeight() >= 0) : (neighbor.getSubstance().getWeight() <= 0))) {
+                return false;
+            }
             
-            return isLiquid && weightTimerReached && isNotFlush && isNotAtRest;
+            long mappedWeightInterval = Math.round(FRAME_CYCLE / Math.abs(sub.getWeight()));
+            
+            return mappedWeightInterval <= clock && clock % mappedWeightInterval == 0;
         }
         
         // Checks that the probability of a viscous flow occurrence is met
-        // Also checks that the substance is configured to be able to flow
-        private boolean shouldApplyViscosity(int gridX, int gridY) {
-            Substance substance = grid[gridY][gridX].getSubstance();
-            Long mappedViscosityProb = Math.round((100 * Math.pow(substance.getViscosity(), 1.5)) + 1);
+        // Also checks that the substance is not rigid (has perfect viscosity)
+        private boolean shouldApplyViscosity(Substance sub) {
+            if(sub.getViscosity() == 1) {
+                return false;
+            }
             
-            boolean isNotSolid = substance.getState() != State.SOLID;
-            boolean isFlowable = substance.getViscosity() < 1;
-            boolean viscosityProbMet = rand.nextInt(mappedViscosityProb.intValue()) == 0;
+            Long mappedViscosityProb = Math.round((100 * Math.pow(sub.getViscosity(), 2)) + 1);
             
-            return isNotSolid && isFlowable && viscosityProbMet;
+            return rand.nextInt(mappedViscosityProb.intValue()) == 0;
         }
         
         // Checks that the substance is beneath a substance with a higher density
         // Also checks that the time interval for applying the substance density has been reached
-        private boolean shouldApplyDensity(int gridX, int gridY, Substance subOnTop) {
-            Substance substance = grid[gridY][gridX].getSubstance();
+        private boolean shouldApplyDensity(Substance sub, Pixel top, Pixel bottom) {
+            Pixel neighbor = sub.getWeight() >= 0 ? top : bottom;
             // No substances are above the current pixel, or the least dense substance is already on top
             // Also checks that the pixel to be swapped hasn't already been calculated
-            if(subOnTop == null || subOnTop.getDensity() <= substance.getDensity() || grid[gridY + (substance.getWeight() >= 0 ? -1 : 1)][gridX].getClockSync() == clock) {
+            if(neighbor == null || !neighbor.containsSubstance() || neighbor.getSubstance().getDensity() <= sub.getDensity() || neighbor.getClockSync() == clock) {
                 return false;
             }
-            // Gases cannot be trapped under liquids, so density will always be applied in this case
-            if(substance.getState() == State.GAS && subOnTop.getState() == State.LIQUID) {
-                return true;
+            // Gases cannot be trapped under liquids, and solids cannot be displaced
+            if(neighbor.getSubstance().getState() != State.LIQUID) {
+                return false;
             }
             
-            long mappedDensityInterval = Math.round(FRAME_CYCLE / (substance.getDensity() - subOnTop.getDensity()));
+            long mappedDensityInterval = Math.round(FRAME_CYCLE / (sub.getDensity() - neighbor.getSubstance().getDensity()));
             
-            boolean areBothNotSolid = substance.getState() != State.SOLID && subOnTop.getState() != State.SOLID;
-            boolean densityTimerReached = mappedDensityInterval <= clock && clock % mappedDensityInterval == 0;
-            
-            return areBothNotSolid && densityTimerReached;
+            return mappedDensityInterval <= clock && clock % mappedDensityInterval == 0;
         }
         
-        // Swaps the current Pixel with the one above/below it to cause a one-pixel drop
+        // Gaseous flow is based solely on density
+        private boolean shouldApplyGas(Substance sub) {
+            Long mappedGasProb = Math.round((100 * Math.pow(sub.getDensity(), 1.5)) + 1);
+            return rand.nextInt(mappedGasProb.intValue()) == 0;
+        }
+        
+        // Checks that two touching substances have an interaction defined between them
+        // Also checks that the time interval for applying the interaction has been reached
+        // Returns the interaction object to be used in the interact() method if one should occur
+        private SubstanceInteraction shouldApplyInteraction(Substance src, Substance rct) {
+            SubstanceInteraction interaction = null;
+            // Check source reaction list
+            for(SubstanceInteraction i: src.getReactions()) {
+                if(i.getReactant().equals(rct)) {
+                    interaction = i;
+                }
+            }
+            
+            // The touching substances are not set to react
+            if(interaction == null) {
+                return null;
+            }
+            
+            Long mappedInteractionProb = Math.round((50000 * Math.pow(1 - interaction.getVolatility(), 2)) + 1);
+            
+            return rand.nextInt(mappedInteractionProb.intValue()) == 0 ? interaction : null;
+        }
+        
+        // Swaps the current Pixel with the one above/below it based on substance weight/density
         // Boolean mode: FALSE denotes weight, TRUE denotes density
-        private void fallOnePixel(int gridX, int gridY, boolean mode) {
-            Pixel temp = grid[gridY][gridX];
+        private void fallOnePixel(Pixel main, Pixel top, Pixel bottom, boolean mode) {
+            Substance sub = main.getSubstance();
             
-            // -1 denotes up, 1 denotes down
-            int fallDirection;
+            Pixel neighbor;
             if(mode) {
-                fallDirection = temp.getSubstance().getWeight() >= 0 ? -1 : 1;
+                // Ensures that substances with opposite weights don't fall into each other the wrong way
+                if(sub.getWeight() >= 0) {
+                    neighbor = top.getSubstance().getWeight() < 0 ? null : top;
+                } else {
+                    neighbor = bottom.getSubstance().getWeight() >= 0 ? null : bottom;
+                }
             } else {
-                fallDirection = temp.getSubstance().getWeight() >= 0 ? 1 : -1;
+                neighbor = sub.getWeight() >= 0 ? bottom : top;
             }
             
-            grid[gridY][gridX] = grid[gridY + fallDirection][gridX];
-            grid[gridY + fallDirection][gridX] = temp;
+            if(neighbor == null) {
+                return;
+            }
             
-            setClockSyncs(grid[gridY][gridX], grid[gridY + fallDirection][gridX]);
+            // Applying the corresponding drop by flipping the pixels
+            Point m = main.getGridLocation();
+            Point n = neighbor.getGridLocation();
+            
+            grid[m.y][m.x] = neighbor;
+            grid[n.y][n.x] = main;
+            
+            main.setGridLocation(n.x, n.y);
+            neighbor.setGridLocation(m.x, m.y);
+            
+            setClockSyncs(main, neighbor);
         }
         
-        // Randomly determines a sideways direction to flow based on the current pixel's available choices
-        private void flowOnePixel(int gridX, int gridY) {
-            boolean leftOccupied = gridX - 1 < 0 || grid[gridY][gridX - 1].getSubstance().equals(grid[gridY][gridX].getSubstance());
-            boolean rightOccupied = gridX + 1 >= grid[gridY].length || grid[gridY][gridX + 1].getSubstance().equals(grid[gridY][gridX].getSubstance());
+        // Randomly determines a direction to flow in a single axis based on the current pixel's available choices
+        // Gases will randomly select an axis on which to flow, while liquids may only flow horizontally
+        private void flowOnePixel(Pixel main, Pixel first, Pixel second) {
+            Substance sub = main.getSubstance();
+            Substance firstSub = first == null ? null : first.getSubstance();
+            Substance secondSub = second == null ? null : second.getSubstance();
             
-            // -1 denotes left, 1 denotes right
-            int flowDirection;
-            if(leftOccupied && rightOccupied) {
+            boolean firstOccupied = firstSub == null || firstSub.equals(sub) || firstSub.getState() == State.SOLID;
+            boolean secondOccupied = secondSub == null || secondSub.equals(sub) || secondSub.getState() == State.SOLID;
+            
+            Pixel neighbor;
+            if(firstOccupied && secondOccupied) {
                 return;
-            } else if(!leftOccupied && rightOccupied) {
-                flowDirection = -1;
-            } else if(leftOccupied && !rightOccupied) {
-                flowDirection = 1;
+            } else if(!firstOccupied && secondOccupied) {
+                neighbor = first;
+            } else if(firstOccupied && !secondOccupied) {
+                neighbor = second;
             } else {
-                flowDirection = !rand.nextBoolean() ? -1 : 1;
+                neighbor = !rand.nextBoolean() ? first : second;
             }
             
-            // Applying the corresponding flow
-            Pixel temp = grid[gridY][gridX];
-            grid[gridY][gridX] = grid[gridY][gridX + flowDirection];
-            grid[gridY][gridX + flowDirection] = temp;
+            if(neighbor == null) {
+                return;
+            }
             
-            setClockSyncs(grid[gridY][gridX], grid[gridY][gridX + flowDirection]);
+            // Applying the corresponding flow by flipping the pixels
+            Point m = main.getGridLocation();
+            Point n = neighbor.getGridLocation();
+            
+            grid[m.y][m.x] = neighbor;
+            grid[n.y][n.x] = main;
+            
+            main.setGridLocation(n.x, n.y);
+            neighbor.setGridLocation(m.x, m.y);
+            
+            setClockSyncs(main, neighbor);
+        }
+        
+        private void interact(SubstanceInteraction interaction, Pixel main, Pixel reactant) {
+            switch(interaction.getSourceOutcome()) {
+                case UNCHANGED ->  {
+                }
+                case CHANGED ->  {
+                    main.setSubstance(interaction.getProduct());
+                }
+                case DESTROYED ->  {
+                    main.setSubstance(Substance.NONE);
+                }
+            }
+            
+            switch(interaction.getReactantOutcome()) {
+                case UNCHANGED ->  {
+                }
+                case CHANGED ->  {
+                    reactant.setSubstance(interaction.getProduct());
+                }
+                case DESTROYED ->  {
+                    reactant.setSubstance(Substance.NONE);
+                }
+            }
+            
+            setClockSyncs(main, reactant);
         }
         
         // Synchronizes the pixels involved in an interaction so they don't get recalculated in the same iteration
@@ -256,31 +420,59 @@ public class Viewport extends JPanel {
             p2.setClockSync(clock);
         }
         
-        // Indices in this array are mapped to the directions of the touching substances
+        // Indices in this array are mapped to the directions of the neighboring pixels
         // 0: Above the substance in question
         // 1: Right of the substance in question
         // 2: Below the substance in question
-        // 3: Left the substance in question
-        private Substance[] getTouchingSubstances(int gridX, int gridY) {
-            Substance substance = grid[gridY][gridX].getSubstance();
+        // 3: Left of the substance in question
+        private Pixel[] getNeighborPixels(int gridX, int gridY) {
+            Pixel[] array = new Pixel[4];
             
+            array[0] = gridY - 1 >= 0 ? grid[gridY - 1][gridX] : null;
+            array[1] = gridX + 1 < grid[gridY].length ? grid[gridY][gridX + 1] : null;
+            array[2] = gridY + 1 < grid.length ? grid[gridY + 1][gridX] : null;
+            array[3] = gridX - 1 >= 0 ? grid[gridY][gridX - 1] : null;
+            
+            return array;
+        }
+        
+        // Get list of touching substances based on neighboring pixels
+        private Substance[] getTouchingSubstances(Pixel[] neighbors, Substance sub) {
             Substance[] array = new Substance[4];
-            array[0] = gridY - 1 >= 0 && grid[gridY - 1][gridX].containsSubstance() && !grid[gridY - 1][gridX].getSubstance().equals(substance)
-                    ? grid[gridY - 1][gridX].getSubstance() : null;
-            array[1] = gridX + 1 < grid[gridY].length && grid[gridY][gridX + 1].containsSubstance() && !grid[gridY][gridX + 1].getSubstance().equals(substance)
-                    ? grid[gridY][gridX + 1].getSubstance() : null;
-            array[2] = gridY + 1 < grid.length && grid[gridY + 1][gridX].containsSubstance() && !grid[gridY + 1][gridX].getSubstance().equals(substance)
-                    ? grid[gridY + 1][gridX].getSubstance() : null;
-            array[3] = gridX - 1 >= 0 && grid[gridY][gridX - 1].containsSubstance() && !grid[gridY][gridX - 1].getSubstance().equals(substance)
-                    ? grid[gridY][gridX - 1].getSubstance() : null;
+            
+            array[0] = neighbors[0] != null && !neighbors[0].getSubstance().equals(sub) ? neighbors[0].getSubstance() : null;
+            array[1] = neighbors[1] != null && !neighbors[1].getSubstance().equals(sub) ? neighbors[1].getSubstance() : null;
+            array[2] = neighbors[2] != null && !neighbors[2].getSubstance().equals(sub) ? neighbors[2].getSubstance() : null;
+            array[3] = neighbors[3] != null && !neighbors[3].getSubstance().equals(sub) ? neighbors[3].getSubstance() : null;
             
             return !Arrays.equals(array, new Substance[] {null, null, null, null}) ? array : null;
         }
         
         // Gets cursor coordinates in terms of Pixel grid indices
-        private Point getMouseGridLocation() {
+        // Builds circle of pixels with radius = brushSize
+        private Pixel[] getPixelsInBrush() {
             Point mouse = getMousePosition();
-            return mouse == null ? null : new Point(Math.floorDiv(mouse.x, Pixel.getRenderSize().width), Math.floorDiv(mouse.y, Pixel.getRenderSize().height));
+            if(mouse == null) {
+                return null;
+            }
+            
+            List<Pixel> list = new ArrayList<>();
+            Point pixel = new Point(Math.floorDiv(mouse.x, Pixel.getRenderSize().width), Math.floorDiv(mouse.y, Pixel.getRenderSize().height));
+            
+            int yDiff = -brushSize;
+            do {
+                int xDiff = (int) -Math.sqrt(Math.abs(Math.ceil(Math.pow(brushSize, 2) - Math.pow(yDiff, 2))));
+                do {
+                    if(pixel.x + xDiff >= 0 && pixel.x + xDiff < grid[pixel.y].length && pixel.y + yDiff >= 0 && pixel.y + yDiff < grid.length) {
+                        list.add(grid[pixel.y + yDiff][pixel.x + xDiff]);
+                    }
+                    xDiff++;
+                } while(xDiff <= (int) Math.sqrt(Math.abs(Math.ceil(Math.pow(brushSize, 2) - Math.pow(yDiff, 2)))));
+                yDiff++;
+            } while(yDiff <= brushSize);
+            
+            Pixel[] array = new Pixel[list.size()];
+            return list.toArray(array);
         }
     }
     
@@ -292,17 +484,39 @@ public class Viewport extends JPanel {
         @Override
         public void mousePressed(MouseEvent e) {
             int status = 0;
-            if(e.getButton() == MouseEvent.BUTTON1) {
-                status = 1;
-            } else if(e.getButton() == MouseEvent.BUTTON3) {
-                status = 2;
+            switch(e.getButton()) {
+                case MouseEvent.BUTTON1 ->  {
+                    status = 1;
+                }
+                case MouseEvent.BUTTON2 ->  {
+                    resetViewport();
+                }
+                case MouseEvent.BUTTON3 ->  {
+                    status = 2;
+                }
+                case 5 ->  {
+                    updater.debugClick(3);
+                }
+                case 4 ->  {
+                    updater.debugClick(4);
+                }
             }
+            
             updater.updateMouseStatus(status);
         }
         
         @Override
         public void mouseReleased(MouseEvent e) {
             updater.updateMouseStatus(0);
+        }
+        
+        @Override
+        public void mouseWheelMoved(MouseWheelEvent e) {
+            if(e.getPreciseWheelRotation() < 0) {
+                brushSize = brushSize >= 20 ? 20 : brushSize + 1;
+            } else {
+                brushSize = brushSize <= 1 ? 1 : brushSize - 1;
+            }
         }
     }
 }
