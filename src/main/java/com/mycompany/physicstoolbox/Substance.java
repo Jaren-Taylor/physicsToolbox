@@ -2,15 +2,127 @@ package com.mycompany.physicstoolbox;
 
 import com.mycompany.physicstoolbox.SubstanceInteraction.ReactionOutcome;
 import java.awt.Color;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class Substance {
     public static final Substance NONE = new Substance(null, null, 0, 0, 0, null);
     private static Substance[] selected = new Substance[2];
     
-    // TEMPORARY FIELD
-    private static Substance[] debugSubs;
+    private static List<Substance> savedSubs = new ArrayList<>();
     
-    public static Substance[] loadSavedSubstances() {
+    public static void loadSavedSubstances() {
+        savedSubs.clear();
+        
+        Substance[] sampleSubs = new Substance[] {
+            new Substance(new Color(180, 180, 180), "Wall", 1, 1, 1, State.SOLID),
+            new Substance(new Color(0, 50, 255), "Water", 0.2, 0.75, 0.5, State.LIQUID),
+            new Substance(new Color(255, 255, 160), "Sand", 1, 0.9, 0.7, State.LIQUID),
+            new Substance(new Color(128, 128, 128), "Stone", 1, 1, 0.99, State.LIQUID),
+            new Substance(new Color(255, 255, 255), "Salt", 1, 0.6, 0.5, State.LIQUID),
+            new Substance(new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.5, State.LIQUID),
+            new Substance(new Color(170, 80, 50), "Oil", 0, 0.75, 0.3, State.LIQUID),
+            new Substance(new Color(255, 125, 0), "Lava", 0.9, 1, 1, State.LIQUID),
+            new Substance(new Color(75, 75, 75), "Metal", 0.5, 1, 1, State.SOLID),
+            new Substance(new Color(255, 50, 50), "Fire", 0.1, -0.75, 0, State.LIQUID)
+        };
+        
+        // Set sample substance interactions
+        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[4], sampleSubs[5], ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.8));
+        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[3], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.8));
+        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[8], sampleSubs[2], ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.3));
+        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.DESTROYED, ReactionOutcome.DESTROYED, 0.6));
+        sampleSubs[2].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.9));
+        sampleSubs[4].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.85));
+        sampleSubs[4].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.7));
+        sampleSubs[5].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[3], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.85));
+        sampleSubs[5].addReaction(new SubstanceInteraction(sampleSubs[8], sampleSubs[2], ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.5));
+        sampleSubs[5].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[4], ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.6));
+        sampleSubs[6].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.98));
+        sampleSubs[6].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
+        sampleSubs[7].addReaction(new SubstanceInteraction(Substance.NONE, sampleSubs[3], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.4));
+        sampleSubs[8].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[7], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
+        sampleSubs[9].addReaction(SubstanceInteraction.decayReaction(0.9));
+        
+        
+        try {
+            Iterator json = ((JSONArray) new JSONParser().parse(new FileReader("SavedSubstances.json"))).iterator();
+            
+            List<Substance> subList = new ArrayList<>();
+            List<JSONObject[]> reactionList = new ArrayList<>();
+            while(json.hasNext()) {
+                JSONObject sub = (JSONObject) json.next();
+                JSONObject col = (JSONObject) sub.get("color");
+                int sta = ((Long) sub.get("state")).intValue();
+                
+                Color color = new Color(((Long) col.get("r")).intValue(), ((Long) col.get("g")).intValue(), ((Long) col.get("b")).intValue());
+                String name = (String) sub.get("name");
+                double viscosity = ((Number) sub.get("viscosity")).doubleValue();
+                double weight = ((Number) sub.get("weight")).doubleValue();
+                double density = ((Number) sub.get("density")).doubleValue();
+                State state = sta == 1 ? State.SOLID : sta == 2 ? State.LIQUID : State.GAS;
+                
+                // Load substance interactions into a list to be applied in the next step
+                // Interactions cannot be applied in this step, because the reactants/products may not have been initialized yet
+                Iterator reactionsJson = ((JSONArray) sub.get("reactions")).iterator();
+                List<JSONObject> reactionObjs = new ArrayList<>();
+                while(reactionsJson.hasNext()) {
+                    reactionObjs.add((JSONObject) reactionsJson.next());
+                }
+                
+                JSONObject[] reactionObjsArray = new JSONObject[reactionObjs.size()];
+                reactionList.add(reactionObjs.toArray(reactionObjsArray));
+                
+                subList.add(new Substance(color, name, viscosity, weight, density, state));
+            }
+            
+            // Set all custom substance interactions
+            for(Substance s: subList) {
+                for(JSONObject obj: reactionList.get(subList.indexOf(s))) {
+                    int reactantId = ((Long) obj.get("reactantId")).intValue();
+                    int productId = ((Long) obj.get("productId")).intValue();
+                    int srcOutcome = ((Long) obj.get("sourceOutcome")).intValue();
+                    int rctOutcome = ((Long) obj.get("reactantOutcome")).intValue();
+                    double volatility = ((Number) obj.get("volatility")).doubleValue();
+                    
+                    ReactionOutcome sourceOutcome = srcOutcome == 1 ? ReactionOutcome.UNCHANGED : srcOutcome == 2 ? ReactionOutcome.CHANGED : ReactionOutcome.DESTROYED;
+                    ReactionOutcome reactantOutcome = rctOutcome == 1 ? ReactionOutcome.UNCHANGED : rctOutcome == 2 ? ReactionOutcome.CHANGED : ReactionOutcome.DESTROYED;
+                    
+                    s.addReaction(new SubstanceInteraction(Substance.getSubstanceById(reactantId), Substance.getSubstanceById(productId), sourceOutcome, reactantOutcome, volatility));
+                }
+            }
+            
+            List<Substance> allSubs = new ArrayList<>(Arrays.asList(sampleSubs));
+            allSubs.addAll(subList);
+            savedSubs = allSubs;
+            
+        } catch(FileNotFoundException fnfe) {
+            System.out.println("Could not find SavedSubstances.json.");
+            savedSubs = Arrays.asList(sampleSubs);
+        } catch(Exception e) {
+            System.out.println("SavedSubstances.json is corrupted.");
+            savedSubs = Arrays.asList(sampleSubs);
+        }
+    }
+    
+    public static Substance[] getSavedSubstances() {
+        Substance[] array = new Substance[savedSubs.size()];
+        return savedSubs.toArray(array);
+    }
+    
+    public static Substance getSubstanceById(int id) {
+        for(Substance sub: savedSubs) {
+            if(sub.getId() == id) {
+                return sub;
+            }
+        }
         return null;
     }
     
@@ -30,31 +142,18 @@ public class Substance {
         selected[1] = s;
     }
     
-    // TEMPORARY METHOD
-    public static Substance[] getDebugSubstances() {
-        return debugSubs;
+    // Fail-safe for initializing a substance with an already-existing ID
+    private static int getNewId() {
+        int id = 0;
+        for(Substance sub: savedSubs) {
+            if(sub.getId() > id) {
+                id = sub.getId();
+            }
+        }
+        return id;
     }
     
-    // TEMPORARY METHOD
-    public static void initializeDebugSubstances() {
-        Substance[] subs = new Substance[7];
-        subs[0] = new Substance(new Color(255, 100, 0), "Fire", 0.1, -0.75, 0, State.LIQUID);
-        subs[1] = new Substance(new Color(255, 0, 0), "Red Stuff", 0.9, 0.75, 0.8, State.LIQUID);
-        subs[2] = new Substance(new Color(0, 255, 0), "Green Stuff", 0.5, -1, 0.7, State.LIQUID);
-        subs[3] = new Substance(new Color(0, 0, 255), "Blue Stuff", 0.1, 0.5, 0.1, State.LIQUID);
-        subs[4] = new Substance(new Color(255, 255, 0), "Yellow Stuff", 0.5, 0.5, 1, State.GAS);
-        subs[5] = new Substance(new Color(200, 50, 255), "Purple Stuff", 0, -0.6, 0.2, State.GAS);
-        subs[6] = new Substance(new Color(128, 128, 128), "Gray Stuff", 0.1, 0.5, 0.1, State.SOLID);
-        
-        subs[0].addReaction(SubstanceInteraction.decayReaction(0.9));
-        subs[1].addReaction(new SubstanceInteraction(subs[3], subs[2], ReactionOutcome.CHANGED, ReactionOutcome.CHANGED, 0.3));
-        subs[3].addReaction(new SubstanceInteraction(subs[6], subs[6], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 1));
-        subs[4].addReaction(new SubstanceInteraction(subs[2], subs[3], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.8));
-        subs[5].addReaction(new SubstanceInteraction(subs[6], subs[3], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.75));
-        
-        debugSubs = subs;
-    }
-    
+    private int id;           // Used to identify reactants/products in the JSON
     private Color color;      // Define using the RGB constructor only
     private String name;
     private double viscosity; // Range -> 0:1
@@ -81,7 +180,22 @@ public class Substance {
         density = d;
         state = s;
         reactions = new SubstanceInteraction[0];
+        
+        // Assign an ID of -1 to Substance.NONE
+        // Do not add Substance.NONE to the savedSubs list
+        if(c == null && n == null && s == null) {
+            id = -1;
+        } else {
+            id = Substance.getSubstanceById(savedSubs.size()) == null ? savedSubs.size() : Substance.getNewId();
+            savedSubs.add(this);
+        }
     }
+    
+    public int getId() {
+        return id;
+    }
+    
+    // No setter for ID, since ID is hidden from the user
     
     public Color getColor() {
         // If no color exists, return transparent instead of null.
@@ -160,18 +274,17 @@ public class Substance {
             reactions = new SubstanceInteraction[0];
         }
         
-        if(reactsWith(si.getReactant())) {
+        if(si.getReactant().getId() != id && reactsWith(si.getReactant().getId())) {
             throw new IllegalArgumentException("Cannot define two different interactions with the same reactant.");
         }
         
-        SubstanceInteraction[] temp = new SubstanceInteraction[reactions.length + 1];
+        List<SubstanceInteraction> asList = new ArrayList<>(Arrays.asList(reactions));
+        asList.add(si);
         
-        System.arraycopy(reactions, 0, temp, 0, reactions.length);
-        temp[reactions.length] = si;
+        SubstanceInteraction[] asArray = new SubstanceInteraction[asList.size()];
+        reactions = asList.toArray(asArray);
         
-        reactions = temp;
-        
-        if(!si.getReactant().equals(this) && !si.getReactant().equals(Substance.NONE) && !si.getReactant().reactsWith(this)) {
+        if(si.getReactant().getId() != id && si.getReactant().getId() != -1 && !si.getReactant().reactsWith(id)) {
             si.getReactant().addReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
         }
     }
@@ -181,19 +294,18 @@ public class Substance {
             return;
         }
         
-        SubstanceInteraction[] temp = new SubstanceInteraction[reactions.length - 1];
+        List<SubstanceInteraction> asList = new ArrayList<>(Arrays.asList(reactions));
         
-        int j = 0;
-        for(SubstanceInteraction reaction : reactions) {
-            if (!reaction.equals(si)) {
-                temp[j] = reaction;
-                j++;
+        for(SubstanceInteraction reaction : asList) {
+            if (reaction.equals(si)) {
+                asList.remove(reaction);
             }
         }
         
-        reactions = temp;
+        SubstanceInteraction[] asArray = new SubstanceInteraction[asList.size()];
+        reactions = asList.toArray(asArray);
         
-        if(!si.getReactant().equals(Substance.NONE)) {
+        if(si.getReactant().getId() != -1 && si.getReactant().getId() != id) {
             si.getReactant().removeReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
         }
     }
@@ -206,12 +318,12 @@ public class Substance {
         reactions = new SubstanceInteraction[0];
     }
     
-    public boolean reactsWith(Substance sub) {
+    public boolean reactsWith(int subId) {
         if(reactions == null || reactions.length == 0) {
             return false;
         }
         for(SubstanceInteraction reaction: reactions) {
-            if(reaction.getReactant().equals(sub)) {
+            if(reaction.getReactant().getId() == subId) {
                 return true;
             }
         }

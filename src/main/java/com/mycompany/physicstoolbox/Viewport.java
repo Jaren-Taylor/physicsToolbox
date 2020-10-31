@@ -132,24 +132,24 @@ public class Viewport extends JPanel {
         }
         
         public void debugClick(int status) {
-            Substance[] debugs = Substance.getDebugSubstances();
+            Substance[] subs = Substance.getSavedSubstances();
             int index = 0;
             int altIndex = 0;
-            for(int i = 0; i < debugs.length; i++) {
-                if(debugs[i].equals(Substance.getCurrentlySelected())) {
+            for(int i = 0; i < subs.length; i++) {
+                if(subs[i].getId() == Substance.getCurrentlySelected().getId()) {
                     index = i;
                 }
             }
-            for(int i = 0; i < debugs.length; i++) {
-                if(debugs[i].equals(Substance.getAlternateSelected())) {
+            for(int i = 0; i < subs.length; i++) {
+                if(subs[i].getId() == Substance.getAlternateSelected().getId()) {
                     altIndex = i;
                 }
             }
             
             if(status == 3) {
-                Substance.setCurrentlySelected(index == debugs.length - 1 ? debugs[0] : debugs[index + 1]);
+                Substance.setCurrentlySelected(index == subs.length - 1 ? subs[0] : subs[index + 1]);
             } else if(status == 4) {
-                Substance.setAlternateSelected(altIndex == debugs.length - 1 ? debugs[0] : debugs[altIndex + 1]);
+                Substance.setAlternateSelected(altIndex == subs.length - 1 ? subs[0] : subs[altIndex + 1]);
             }
         }
         
@@ -160,7 +160,7 @@ public class Viewport extends JPanel {
                 Pixel[] pixels = getPixelsInBrush();
                 if(pixels != null) {
                     for(Pixel p: pixels) {
-                        if(p.getSubstance().equals(Substance.NONE)) {
+                        if(p.getSubstance().getId() == -1) {
                             p.setSubstance(Substance.getCurrentlySelected());
                         }
                     }
@@ -170,7 +170,7 @@ public class Viewport extends JPanel {
                 Pixel[] pixels = getPixelsInBrush();
                 if(pixels != null) {
                     for(Pixel p: pixels) {
-                        if(p.getSubstance().equals(Substance.NONE)) {
+                        if(p.getSubstance().getId() == -1) {
                             p.setSubstance(Substance.getAlternateSelected());
                         }
                     }
@@ -264,7 +264,7 @@ public class Viewport extends JPanel {
                 return false;
             }
             
-            Long mappedViscosityProb = Math.round((100 * Math.pow(sub.getViscosity(), 2)) + 1);
+            Long mappedViscosityProb = Math.round((100 * Math.pow(sub.getViscosity(), 2)) + 2);
             
             return rand.nextInt(mappedViscosityProb.intValue()) == 0;
         }
@@ -301,7 +301,7 @@ public class Viewport extends JPanel {
             SubstanceInteraction interaction = null;
             // Check source reaction list
             for(SubstanceInteraction i: src.getReactions()) {
-                if(i.getReactant().equals(rct)) {
+                if(i.getReactant().getId() == rct.getId()) {
                     interaction = i;
                 }
             }
@@ -357,8 +357,8 @@ public class Viewport extends JPanel {
             Substance firstSub = first == null ? null : first.getSubstance();
             Substance secondSub = second == null ? null : second.getSubstance();
             
-            boolean firstOccupied = firstSub == null || firstSub.equals(sub) || firstSub.getState() == State.SOLID;
-            boolean secondOccupied = secondSub == null || secondSub.equals(sub) || secondSub.getState() == State.SOLID;
+            boolean firstOccupied = firstSub == null || firstSub.getId() == sub.getId() || firstSub.getState() == State.SOLID;
+            boolean secondOccupied = secondSub == null || secondSub.getId() == sub.getId() || secondSub.getState() == State.SOLID;
             
             Pixel neighbor;
             if(firstOccupied && secondOccupied) {
@@ -440,10 +440,10 @@ public class Viewport extends JPanel {
         private Substance[] getTouchingSubstances(Pixel[] neighbors, Substance sub) {
             Substance[] array = new Substance[4];
             
-            array[0] = neighbors[0] != null && !neighbors[0].getSubstance().equals(sub) ? neighbors[0].getSubstance() : null;
-            array[1] = neighbors[1] != null && !neighbors[1].getSubstance().equals(sub) ? neighbors[1].getSubstance() : null;
-            array[2] = neighbors[2] != null && !neighbors[2].getSubstance().equals(sub) ? neighbors[2].getSubstance() : null;
-            array[3] = neighbors[3] != null && !neighbors[3].getSubstance().equals(sub) ? neighbors[3].getSubstance() : null;
+            array[0] = neighbors[0] != null && neighbors[0].getSubstance().getId() != sub.getId() ? neighbors[0].getSubstance() : null;
+            array[1] = neighbors[1] != null && neighbors[1].getSubstance().getId() != sub.getId() ? neighbors[1].getSubstance() : null;
+            array[2] = neighbors[2] != null && neighbors[2].getSubstance().getId() != sub.getId() ? neighbors[2].getSubstance() : null;
+            array[3] = neighbors[3] != null && neighbors[3].getSubstance().getId() != sub.getId() ? neighbors[3].getSubstance() : null;
             
             return !Arrays.equals(array, new Substance[] {null, null, null, null}) ? array : null;
         }

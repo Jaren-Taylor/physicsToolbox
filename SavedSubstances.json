@@ -1,0 +1,23 @@
+[
+	{
+		"color": {
+			"r": 255,
+			"g": 255,
+			"b": 0
+		},
+		"name": "Yellow Stuff",
+		"viscosity": 1,
+		"weight": 0.1,
+		"density": 0.01,
+		"state": 2,
+		"reactions": [
+			{
+				"reactantId": 1,
+				"productId": 5,
+				"sourceOutcome": 2,
+				"reactantOutcome": 1,
+				"volatility": 1
+			}
+		]
+	}
+]
