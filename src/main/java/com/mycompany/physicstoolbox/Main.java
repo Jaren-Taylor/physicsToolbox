@@ -2,6 +2,8 @@ package com.mycompany.physicstoolbox;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +29,13 @@ public class Main extends JFrame {
         frame.setPreferredSize(WINDOW_SIZE);
         frame.setResizable(false);
         frame.add(vp);
+        
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                Substance.saveSubstances();
+            }
+        });
         
         frame.pack();
         frame.getContentPane().setLayout(new FlowLayout(FlowLayout.RIGHT));

@@ -4,6 +4,7 @@ import com.mycompany.physicstoolbox.SubstanceInteraction.ReactionOutcome;
 import java.awt.Color;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -17,6 +18,7 @@ public class Substance {
     private static Substance[] selected = new Substance[2];
     
     private static List<Substance> savedSubs = new ArrayList<>();
+    private static int NUM_OF_SAMPLE_SUBS;
     
     public static void loadSavedSubstances() {
         savedSubs.clear();
@@ -27,12 +29,14 @@ public class Substance {
             new Substance(new Color(255, 255, 160), "Sand", 1, 0.9, 0.7, State.LIQUID),
             new Substance(new Color(128, 128, 128), "Stone", 1, 1, 0.99, State.LIQUID),
             new Substance(new Color(255, 255, 255), "Salt", 1, 0.6, 0.5, State.LIQUID),
-            new Substance(new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.5, State.LIQUID),
+            new Substance(new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.6, State.LIQUID),
             new Substance(new Color(170, 80, 50), "Oil", 0, 0.75, 0.3, State.LIQUID),
             new Substance(new Color(255, 125, 0), "Lava", 0.9, 1, 1, State.LIQUID),
             new Substance(new Color(75, 75, 75), "Metal", 0.5, 1, 1, State.SOLID),
             new Substance(new Color(255, 50, 50), "Fire", 0.1, -0.75, 0, State.LIQUID)
         };
+        
+        NUM_OF_SAMPLE_SUBS = sampleSubs.length;
         
         // Set sample substance interactions
         sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[4], sampleSubs[5], ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.8));
@@ -83,6 +87,14 @@ public class Substance {
                 subList.add(new Substance(color, name, viscosity, weight, density, state));
             }
             
+            List<Substance> allSubs = new ArrayList<>(Arrays.asList(sampleSubs));
+            allSubs.addAll(subList);
+            
+            // Add the substances individually to set their proper IDs
+            for(Substance sub: allSubs) {
+                addCustomSubstance(sub);
+            }
+            
             // Set all custom substance interactions
             for(Substance s: subList) {
                 for(JSONObject obj: reactionList.get(subList.indexOf(s))) {
@@ -99,16 +111,81 @@ public class Substance {
                 }
             }
             
-            List<Substance> allSubs = new ArrayList<>(Arrays.asList(sampleSubs));
-            allSubs.addAll(subList);
-            savedSubs = allSubs;
+        } catch(FileNotFoundException fnfe) {
+            System.out.println("LOAD ERROR: Could not find SavedSubstances.json.");
+            
+            for(Substance sub: sampleSubs) {
+                addCustomSubstance(sub);
+            }
+        } catch(Exception e) {
+            System.out.println("LOAD ERROR: SavedSubstances.json is corrupted.");
+            e.printStackTrace();
+            
+            for(Substance sub: sampleSubs) {
+                addCustomSubstance(sub);
+            }
+        }
+    }
+    
+    public static void saveSubstances() {
+        JSONArray json = new JSONArray();
+        JSONObject subJsonObj;
+        Substance savedSub;
+        
+        // Don't write sample substances to the JSON
+        for(int i = NUM_OF_SAMPLE_SUBS; i < savedSubs.size(); i++) {
+            subJsonObj = new JSONObject();
+            savedSub = savedSubs.get(i);
+            
+            JSONObject colorJsonObj = new JSONObject();
+            colorJsonObj.put("r", savedSub.getColor().getRed());
+            colorJsonObj.put("g", savedSub.getColor().getGreen());
+            colorJsonObj.put("b", savedSub.getColor().getBlue());
+            
+            subJsonObj.put("color", colorJsonObj);
+            subJsonObj.put("name", savedSub.getName());
+            subJsonObj.put("viscosity", savedSub.getViscosity());
+            subJsonObj.put("weight", savedSub.getWeight());
+            subJsonObj.put("density", savedSub.getDensity());
+            
+            int sta = savedSub.getState() == State.SOLID ? 1 : savedSub.getState() == State.LIQUID ? 2 : 3;
+            subJsonObj.put("state", sta);
+            
+            JSONArray reactionsJson = new JSONArray();
+            JSONObject reactionJsonObj;
+            for(SubstanceInteraction reaction: savedSub.getReactions()) {
+                reactionJsonObj = new JSONObject();
+                
+                reactionJsonObj.put("reactantId", reaction.getReactant().getId());
+                reactionJsonObj.put("productId", reaction.getProduct().getId());
+                
+                int sourceOutcome = reaction.getSourceOutcome() == ReactionOutcome.UNCHANGED ? 1 : reaction.getSourceOutcome() == ReactionOutcome.CHANGED ? 2 : 3;
+                int reactantOutcome = reaction.getReactantOutcome() == ReactionOutcome.UNCHANGED ? 1 : reaction.getReactantOutcome() == ReactionOutcome.CHANGED ? 2 : 3;
+                reactionJsonObj.put("sourceOutcome", sourceOutcome);
+                reactionJsonObj.put("reactantOutcome", reactantOutcome);
+                
+                reactionJsonObj.put("volatility", reaction.getVolatility());
+                
+                reactionsJson.add(reactionJsonObj);
+            }
+            
+            subJsonObj.put("reactions", reactionsJson);
+            
+            json.add(subJsonObj);
+        }
+        
+        try {
+            PrintWriter writer = new PrintWriter("SavedSubstances.json");
+            writer.write(json.toJSONString());
+            
+            writer.flush();
+            writer.close();
             
         } catch(FileNotFoundException fnfe) {
-            System.out.println("Could not find SavedSubstances.json.");
-            savedSubs = Arrays.asList(sampleSubs);
+            System.out.println("SAVE ERROR: Could not find SavedSubstances.json.");
         } catch(Exception e) {
-            System.out.println("SavedSubstances.json is corrupted.");
-            savedSubs = Arrays.asList(sampleSubs);
+            System.out.println("SAVE ERROR OCCURRED.");
+            e.printStackTrace();
         }
     }
     
@@ -126,6 +203,34 @@ public class Substance {
         return null;
     }
     
+    public static void addCustomSubstance(Substance sub) {
+        sub.setId(savedSubs.size());
+        savedSubs.add(sub);
+    }
+    
+    public static void editCustomSubstance(int id, Substance newSub) {
+        if(id < NUM_OF_SAMPLE_SUBS) {
+            throw new UnsupportedOperationException("Cannot edit sample substances.");
+        }
+        
+        newSub.setId(savedSubs.get(id).getId());
+        savedSubs.set(id, newSub);
+    }
+    
+    public static void removeCustomSubstance(Substance sub) {
+        if(savedSubs.indexOf(sub) < NUM_OF_SAMPLE_SUBS) {
+            throw new UnsupportedOperationException("Cannot remove sample substances.");
+        }
+        
+        // Decrementing the IDs of the substances that follow
+        for(int i = savedSubs.indexOf(sub) + 1; i < savedSubs.size(); i++) {
+            Substance s = savedSubs.get(i);
+            s.setId(s.getId() - 1);
+        }
+        
+        savedSubs.remove(sub);
+    }
+    
     public static Substance getCurrentlySelected() {
         return selected[0];
     }
@@ -140,17 +245,6 @@ public class Substance {
     
     public static void setAlternateSelected(Substance s) {
         selected[1] = s;
-    }
-    
-    // Fail-safe for initializing a substance with an already-existing ID
-    private static int getNewId() {
-        int id = 0;
-        for(Substance sub: savedSubs) {
-            if(sub.getId() > id) {
-                id = sub.getId();
-            }
-        }
-        return id;
     }
     
     private int id;           // Used to identify reactants/products in the JSON
@@ -182,12 +276,8 @@ public class Substance {
         reactions = new SubstanceInteraction[0];
         
         // Assign an ID of -1 to Substance.NONE
-        // Do not add Substance.NONE to the savedSubs list
         if(c == null && n == null && s == null) {
             id = -1;
-        } else {
-            id = Substance.getSubstanceById(savedSubs.size()) == null ? savedSubs.size() : Substance.getNewId();
-            savedSubs.add(this);
         }
     }
     
@@ -195,7 +285,14 @@ public class Substance {
         return id;
     }
     
-    // No setter for ID, since ID is hidden from the user
+    // Setter for the ID is private, since ID is hidden from the user
+    private void setId(int i) {
+        if(this.equals(Substance.NONE)) {
+            throw new UnsupportedOperationException("Cannot change the ID of Substance.NONE.");
+        }
+        
+        id = i;
+    }
     
     public Color getColor() {
         // If no color exists, return transparent instead of null.

@@ -325,9 +325,9 @@ public class Viewport extends JPanel {
             if(mode) {
                 // Ensures that substances with opposite weights don't fall into each other the wrong way
                 if(sub.getWeight() >= 0) {
-                    neighbor = top.getSubstance().getWeight() < 0 ? null : top;
+                    neighbor = top == null || top.getSubstance().getWeight() < 0 ? null : top;
                 } else {
-                    neighbor = bottom.getSubstance().getWeight() >= 0 ? null : bottom;
+                    neighbor = bottom == null || bottom.getSubstance().getWeight() >= 0 ? null : bottom;
                 }
             } else {
                 neighbor = sub.getWeight() >= 0 ? bottom : top;
