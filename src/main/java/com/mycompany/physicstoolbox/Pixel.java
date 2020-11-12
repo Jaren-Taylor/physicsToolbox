@@ -25,7 +25,7 @@ public class Pixel {
     }
     
     public boolean containsSubstance() {
-        return !occupyingSubstance.equals(Substance.NONE);
+        return occupyingSubstance.getId() != -1;
     }
     
     public Substance getSubstance() {

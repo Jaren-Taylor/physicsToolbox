@@ -8,3 +8,4 @@ com\mycompany\physicstoolbox\Viewport$Updater.class
 com\mycompany\physicstoolbox\SubstanceInteraction$ReactionOutcome.class
 com\mycompany\physicstoolbox\Substance$State.class
 com\mycompany\physicstoolbox\SubstanceInteraction.class
+com\mycompany\physicstoolbox\Main$1.class
