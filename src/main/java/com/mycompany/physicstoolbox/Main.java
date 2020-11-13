@@ -11,8 +11,18 @@ import java.util.Arrays;
 public class Main extends JFrame {
     private static final Dimension WINDOW_SIZE = new Dimension(1200, 800);
     private static final Dimension VIEWPORT_SIZE = new Dimension(800, 600);
-    
+  
     private static Substance[] allSubstances = new Substance[0];
+    
+     static class SubstanceMenu extends JPanel{
+        public JLabel menu = new JLabel("Placeholder");
+        public SubstanceMenu(){
+            add(menu);
+            setPreferredSize(new Dimension(800, 170));
+            setBorder(BorderFactory.createLineBorder(Color.yellow));
+        }
+    }
+    
     
     public static void main (String[] args) {
         Substance.loadSavedSubstances();
@@ -24,11 +34,20 @@ public class Main extends JFrame {
         
         JFrame frame = new JFrame("Physics Toolbox");
         Viewport vp = Viewport.getInstance(VIEWPORT_SIZE);
-        
+        UI ui = new UI();
+        SubstanceMenu sm = new SubstanceMenu();
+        JPanel vpContainer = new JPanel(new BorderLayout());
+        JPanel uiContainer = new JPanel();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setPreferredSize(WINDOW_SIZE);
         frame.setResizable(false);
-        frame.add(vp);
+        uiContainer.add(ui);
+        frame.add(uiContainer,BorderLayout.LINE_START);
+        vpContainer.add(vp, BorderLayout.PAGE_START);
+        vpContainer.add(sm, BorderLayout.PAGE_END);
+        frame.add(vpContainer,BorderLayout.LINE_END);
+        
+        
         
         frame.addWindowListener(new WindowAdapter() {
             @Override
@@ -38,7 +57,7 @@ public class Main extends JFrame {
         });
         
         frame.pack();
-        frame.getContentPane().setLayout(new FlowLayout(FlowLayout.RIGHT));
+        frame.getContentPane().setLayout(new BorderLayout());
         frame.setVisible(true);
     }
     
