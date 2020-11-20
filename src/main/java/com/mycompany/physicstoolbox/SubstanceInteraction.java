@@ -2,10 +2,6 @@ package com.mycompany.physicstoolbox;
 
 public class SubstanceInteraction {
     
-    public static SubstanceInteraction decayReaction(double volatility) {
-        return new SubstanceInteraction(Substance.NONE, Substance.NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
-    }
-    
     private Substance reactant, product;
     private double volatility;
     private ReactionOutcome sourceOutcome, reactantOutcome;

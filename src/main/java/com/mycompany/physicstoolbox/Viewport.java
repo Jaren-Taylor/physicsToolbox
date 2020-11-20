@@ -357,8 +357,8 @@ public class Viewport extends JPanel {
             Substance firstSub = first == null ? null : first.getSubstance();
             Substance secondSub = second == null ? null : second.getSubstance();
             
-            boolean firstOccupied = firstSub == null || firstSub.getId() == sub.getId() || firstSub.getState() == State.SOLID;
-            boolean secondOccupied = secondSub == null || secondSub.getId() == sub.getId() || secondSub.getState() == State.SOLID;
+            boolean firstOccupied = firstSub == null || firstSub.getId() == sub.getId() || firstSub.getState() == State.SOLID || firstSub.getDensity() > sub.getDensity();
+            boolean secondOccupied = secondSub == null || secondSub.getId() == sub.getId() || secondSub.getState() == State.SOLID || secondSub.getDensity() > sub.getDensity();
             
             Pixel neighbor;
             if(firstOccupied && secondOccupied) {
