@@ -15,45 +15,52 @@ import org.json.simple.parser.JSONParser;
 
 public class Substance {
     public static final Substance NONE = new Substance(null, null, 0, 0, 0, null);
-    private static Substance[] selected = new Substance[2];
     
+    private static Substance[] selected = new Substance[2];
     private static List<Substance> savedSubs = new ArrayList<>();
     private static int NUM_OF_SAMPLE_SUBS;
+    
+    private static final Substance WALL = new Substance(new Color(180, 180, 180), "Wall", 1, 1, 1, State.SOLID);
+    private static final Substance WATER = new Substance(new Color(0, 50, 255), "Water", 0.2, 0.75, 0.5, State.LIQUID);
+    private static final Substance SAND = new Substance(new Color(255, 255, 160), "Sand", 1, 0.9, 0.7, State.LIQUID);
+    private static final Substance STONE = new Substance(new Color(128, 128, 128), "Stone", 1, 1, 0.99, State.LIQUID);
+    private static final Substance SALT = new Substance(new Color(255, 255, 255), "Salt", 1, 0.6, 0.5, State.LIQUID);
+    private static final Substance SALT_WATER = new Substance(new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.6, State.LIQUID);
+    private static final Substance OIL = new Substance(new Color(170, 80, 50), "Oil", 0, 0.75, 0.3, State.LIQUID);
+    private static final Substance LAVA = new Substance(new Color(255, 125, 0), "Lava", 0.9, 1, 1, State.LIQUID);
+    private static final Substance METAL = new Substance(new Color(75, 75, 75), "Metal", 0.5, 1, 1, State.SOLID);
+    private static final Substance FIRE = new Substance(new Color(255, 50, 50), "Fire", 0.1, -0.75, 0, State.LIQUID);
+    private static final Substance PLANT = new Substance(new Color(50, 225, 50), "Plant", 1, 0.5, 1, State.SOLID);
     
     public static void loadSavedSubstances() {
         savedSubs.clear();
         
-        Substance[] sampleSubs = new Substance[] {
-            new Substance(new Color(180, 180, 180), "Wall", 1, 1, 1, State.SOLID),
-            new Substance(new Color(0, 50, 255), "Water", 0.2, 0.75, 0.5, State.LIQUID),
-            new Substance(new Color(255, 255, 160), "Sand", 1, 0.9, 0.7, State.LIQUID),
-            new Substance(new Color(128, 128, 128), "Stone", 1, 1, 0.99, State.LIQUID),
-            new Substance(new Color(255, 255, 255), "Salt", 1, 0.6, 0.5, State.LIQUID),
-            new Substance(new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.6, State.LIQUID),
-            new Substance(new Color(170, 80, 50), "Oil", 0, 0.75, 0.3, State.LIQUID),
-            new Substance(new Color(255, 125, 0), "Lava", 0.9, 1, 1, State.LIQUID),
-            new Substance(new Color(75, 75, 75), "Metal", 0.5, 1, 1, State.SOLID),
-            new Substance(new Color(255, 50, 50), "Fire", 0.1, -0.75, 0, State.LIQUID)
-        };
+        Substance[] sampleSubs = new Substance[] {WALL, WATER, SAND, STONE, SALT, SALT_WATER, OIL, LAVA, METAL, FIRE, PLANT};
         
         NUM_OF_SAMPLE_SUBS = sampleSubs.length;
         
         // Set sample substance interactions
-        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[4], sampleSubs[5], ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.8));
-        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[3], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.8));
-        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[8], sampleSubs[2], ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.3));
-        sampleSubs[1].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.DESTROYED, ReactionOutcome.DESTROYED, 0.6));
-        sampleSubs[2].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.9));
-        sampleSubs[4].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.85));
-        sampleSubs[4].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.7));
-        sampleSubs[5].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[3], ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.85));
-        sampleSubs[5].addReaction(new SubstanceInteraction(sampleSubs[8], sampleSubs[2], ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.5));
-        sampleSubs[5].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[4], ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.6));
-        sampleSubs[6].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.98));
-        sampleSubs[6].addReaction(new SubstanceInteraction(sampleSubs[9], sampleSubs[9], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
-        sampleSubs[7].addReaction(new SubstanceInteraction(Substance.NONE, sampleSubs[3], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.4));
-        sampleSubs[8].addReaction(new SubstanceInteraction(sampleSubs[7], sampleSubs[7], ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
-        sampleSubs[9].addReaction(SubstanceInteraction.decayReaction(0.9));
+        WATER.addReaction(new SubstanceInteraction(SALT, SALT_WATER, ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.95));
+        WATER.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.85));
+        WATER.addReaction(new SubstanceInteraction(METAL, SAND, ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.3));
+        WATER.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.DESTROYED, ReactionOutcome.DESTROYED, 0.6));
+        WATER.addReaction(new SubstanceInteraction(PLANT, PLANT, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.65));
+        SAND.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.9));
+        SALT.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.85));
+        SALT.addReaction(new SubstanceInteraction(PLANT, NONE, ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.35));
+        SALT.toggleFlammableReaction(true, 0.7);
+        SALT_WATER.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.85));
+        SALT_WATER.addReaction(new SubstanceInteraction(METAL, SAND, ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.5));
+        SALT_WATER.addReaction(new SubstanceInteraction(FIRE, SALT, ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.6));
+        OIL.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.98));
+        OIL.toggleFlammableReaction(true, 0.95);
+        LAVA.addReaction(new SubstanceInteraction(NONE, STONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
+        LAVA.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.25));
+        METAL.addReaction(new SubstanceInteraction(LAVA, LAVA, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
+        FIRE.toggleDecayReaction(true, 0.9);
+        PLANT.addReaction(new SubstanceInteraction(NONE, PLANT, ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.3));
+        PLANT.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
+        PLANT.toggleFlammableReaction(true, 0.95);
         
         
         try {
@@ -275,7 +282,7 @@ public class Substance {
         state = s;
         reactions = new SubstanceInteraction[0];
         
-        // Assign an ID of -1 to Substance.NONE
+        // Assign an ID of -1 to NONE
         if(c == null && n == null && s == null) {
             id = -1;
         }
@@ -287,8 +294,8 @@ public class Substance {
     
     // Setter for the ID is private, since ID is hidden from the user
     private void setId(int i) {
-        if(this.equals(Substance.NONE)) {
-            throw new UnsupportedOperationException("Cannot change the ID of Substance.NONE.");
+        if(this.equals(NONE)) {
+            throw new UnsupportedOperationException("Cannot change the ID of NONE.");
         }
         
         id = i;
@@ -383,6 +390,29 @@ public class Substance {
         
         if(si.getReactant().getId() != id && si.getReactant().getId() != -1 && !si.getReactant().reactsWith(id)) {
             si.getReactant().addReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
+        }
+    }
+    
+    public void toggleDecayReaction(boolean turningOn, double volatility) {
+        SubstanceInteraction noneReaction = new SubstanceInteraction(NONE, NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
+        SubstanceInteraction selfReaction = new SubstanceInteraction(this, NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
+        
+        if(turningOn) {
+            addReaction(noneReaction);
+            addReaction(selfReaction);
+        } else {
+            removeReaction(noneReaction);
+            removeReaction(selfReaction);
+        }
+    }
+    
+    public void toggleFlammableReaction(boolean turningOn, double volatility) {
+        SubstanceInteraction reaction = new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
+        
+        if(turningOn) {
+            addReaction(reaction);
+        } else {
+            removeReaction(reaction);
         }
     }
     
