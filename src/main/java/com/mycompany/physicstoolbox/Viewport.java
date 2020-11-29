@@ -363,13 +363,13 @@ public class Viewport extends JPanel {
             Pixel neighbor;
             if(firstOccupied && secondOccupied) {
                 return;
+            } else if(!firstOccupied && !secondOccupied) {
+                neighbor = !rand.nextBoolean() ? first : second;
             } else if(!firstOccupied && secondOccupied) {
                 neighbor = first;
-            } else if(firstOccupied && !secondOccupied) {
-                neighbor = second;
             } else {
-                neighbor = !rand.nextBoolean() ? first : second;
-            }
+                neighbor = second;
+            } 
             
             if(neighbor == null) {
                 return;

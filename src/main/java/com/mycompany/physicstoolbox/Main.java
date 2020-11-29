@@ -16,30 +16,29 @@ public class Main extends JFrame {
     private static final Dimension WINDOW_SIZE = new Dimension(1200, 800);
     private static final Dimension VIEWPORT_SIZE = new Dimension(800, 600);
     private static JButton substanceItem;
-   
 
-    private static Substance[] allSubstances = new Substance[0];
+    public static Substance[] allSubstances = new Substance[0];
 
-     static class SubstanceMenu extends JPanel implements ActionListener {
+    static class SubstanceMenu extends JPanel implements ActionListener {
+
         public static boolean substanceAdded = false;
         PropertyChangeSupport pcs = new PropertyChangeSupport(this);
         public JLabel menu = new JLabel("Placeholder");
 
         public void actionPerformed(ActionEvent e) {
-         String name = ((JButton) e.getSource()).getText();
-         Substance.setCurrentlySelected(substanceByName(name));
-         
+            String name = ((JButton) e.getSource()).getText();
+            Substance.setCurrentlySelected(substanceByName(name));
+
         }
-        
+
 //          @Override
 //        public void propertyChange(PropertyChangeEvent event) {
 //        if (event.getNewValue() == true) {
 //            System.out.println(event.getNewValue().toString());
 //        }
 //    }
-        
-        public void rescanSubstances(){
-            if(substanceAdded){
+        public void rescanSubstances() {
+            if (substanceAdded) {
                 substanceAdded = false;
                 this.repaint();
             }
@@ -60,7 +59,7 @@ public class Main extends JFrame {
             }
 
         }
-        
+
         public static Substance substanceByName(String name) {
             for (Substance sub : allSubstances) {
                 if (sub.getName().equalsIgnoreCase(name)) {
@@ -70,6 +69,11 @@ public class Main extends JFrame {
             System.out.println("No substance found, the selected substance will remain the same.");
             return Substance.getCurrentlySelected();
         }
+//        public static boolean substanceIncluded(String name){
+//            for( Substance sub: allSubstances){
+//                if(name.equals(sub.getName()))
+//            }
+//        }
     }
 
     public static void main(String[] args) {
@@ -105,10 +109,17 @@ public class Main extends JFrame {
         frame.pack();
         frame.getContentPane().setLayout(new BorderLayout());
         frame.setVisible(true);
+//        System.out.println(" Flammability is: "+ ui.flammability);
+//        System.out.println(" Viscosity is: "+ ui.vis);
+//        System.out.println(" Weight is: "+ ui.wei);
+//        System.out.println(" Density is: "+ ui.den);
+//        System.out.println(" decy rate is: "+ ui.decay);
+//        System.out.println(" volatility is: "+ ui.volat);
+
     }
 
     public static void addSubstanceToMenu(Substance sub) {
-        List<Substance> subsAsList = Arrays.asList(allSubstances);
+        List<Substance> subsAsList = new ArrayList<>(Arrays.asList(allSubstances));
         subsAsList.add(sub);
 
         Substance[] subsAsArray = new Substance[subsAsList.size()];

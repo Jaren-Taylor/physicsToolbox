@@ -11,7 +11,7 @@ import com.mycompany.physicstoolbox.Main.SubstanceMenu;
  *
  * @author Jaren Taylor
  */
-public class UI extends JPanel implements ChangeListener, ItemListener {
+public class UI extends JPanel implements ItemListener, ActionListener {
 
     public static final Dimension EDITOR_SIZE = new Dimension(370, 750);
 
@@ -44,14 +44,15 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
     public static Double flammability;
     public static Double volat;
     public static Substance.State substanceState;
+    public static ArrayList<SubstanceInteraction> interactionList = new ArrayList<>();
 
     public static JTextField nameInput = new JTextField(10);
-    JSlider v = new JSlider(0, 10);
-    JSlider w = new JSlider(0, 10);
-    JSlider d = new JSlider(0, 10);
-    JSlider dec = new JSlider(0, 10);
-    JSlider flam = new JSlider(0, 10);
-    JSlider volatility = new JSlider(0, 10);
+    JSlider v = new JSlider(0, 100);
+    JSlider w = new JSlider(-100, 100);
+    JSlider d = new JSlider(0, 100);
+    JSlider dec = new JSlider(0, 100);
+    JSlider flam = new JSlider(0, 100);
+    JSlider volatility = new JSlider(0, 100);
 
     //Components
     public Rect rect = new Rect();
@@ -65,7 +66,8 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
     public JPanel flammabiltyPanel = new JPanel();
     public JPanel reactantPanel = new JPanel();
     public JPanel productPanel = new JPanel();
-    public JRadioButton create = new JRadioButton("Create");
+    public JButton create = new JButton("Create");
+    public JButton newReaction = new JButton("Add Reaction");
 
     public UI() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -73,27 +75,20 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
         setBorder(BorderFactory.createLineBorder(java.awt.Color.RED));
 
         statePanel.add(solid);
-
         statePanel.add(liquid);
-
         statePanel.add(gas);
-
         statePanel.setMaximumSize(statePanel.getPreferredSize());
 
         decayPanel.add(decayComponent);
-
         decayPanel.setMaximumSize(decayPanel.getPreferredSize());
 
         flammabiltyPanel.add(flammabilityComponent);
-
         flammabiltyPanel.setMaximumSize(flammabiltyPanel.getPreferredSize());
 
         reactantPanel.add(reactantComponent);
-
         reactantPanel.setMaximumSize(reactantPanel.getPreferredSize());
 
         productPanel.add(productComponent);
-
         productPanel.setMaximumSize(reactantPanel.getPreferredSize());
 
         title.setFont(
@@ -102,74 +97,39 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
         create.setMaximumSize(create.getPreferredSize());
 
         add(title);
-
         add(name);
-
         add(nameInput);
-
         add(cl);
-
         add(rect);
-
         add(viscosity);
-
         add(v);
-
         add(weight);
-
         add(w);
-
         add(density);
-
         add(d);
-
         add(state);
-
         add(statePanel);
-
         add(reactivity);
-
         add(decayPanel);
-
         add(flammabiltyPanel);
-
         add(rpRelation);
-
         add(reactantPanel);
-
         add(productPanel);
-
         add(volatilityL); //label
-
         add(volatility); //slider
-
+        add(newReaction);
         add(create);
 
-        v.addChangeListener(
-                this);
-        w.addChangeListener(
-                this);
-        d.addChangeListener(
-                this);
 
         rect.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         v.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         w.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         d.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         volatility.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         statePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         decayPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         flammabiltyPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         reactantPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         productPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         solid.addItemListener(
@@ -178,51 +138,74 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
                 this);
         gas.addItemListener(
                 this);
-        create.addItemListener(
+        create.addActionListener(
                 this);
+        newReaction.addActionListener(this);
         bg.add(gas);
-
         bg.add(solid);
-
         bg.add(liquid);
     }
 
     public void createSubstance() {
-        Substance newSub = new Substance(this.rect.rc, this.nameInput.getText(), this.vis, this.wei, this.den, this.substanceState);
-        newSub.addReaction(
-                new SubstanceInteraction(Main.SubstanceMenu.substanceByName(
-                        reactantComponent.dropBox.getName()),
-                        Main.SubstanceMenu.substanceByName(productComponent.dropBox.getSelectedItem().toString()),
-                        SubstanceInteraction.ReactionOutcome.CHANGED,
-                        SubstanceInteraction.ReactionOutcome.UNCHANGED,
-                        this.volat
-                ));
+        Substance newSub = new Substance(
+                Substance.getSavedSubstances().length,
+                this.rect.rc,
+                this.nameInput.getText(),
+                Double.valueOf(v.getValue())/100,
+                Double.valueOf(w.getValue())/100,
+                Double.valueOf(d.getValue())/100,
+                this.substanceState);
+        
+        newSub.toggleDecayReaction(decays.getState(), Double.valueOf(dec.getValue())/100);
+
+        newSub.toggleFlammableReaction(flammable.getState(), Double.valueOf(flam.getValue())/100);
+
+        for (SubstanceInteraction SI : interactionList) {
+            newSub.addReaction(SI);
+
+        }
+        interactionList.clear();
         Substance.addCustomSubstance(newSub);
+        Main.addSubstanceToMenu(newSub);
+
+//        newSub.addReaction(
+//                new SubstanceInteraction(Main.SubstanceMenu.substanceByName(
+//                        reactantComponent.dropBox.getName()),
+//                        Main.SubstanceMenu.substanceByName(productComponent.dropBox.getSelectedItem().toString()),
+//                        SubstanceInteraction.ReactionOutcome.CHANGED,
+//                        SubstanceInteraction.ReactionOutcome.UNCHANGED,
+//                        this.volat
+//                ));
         Main.SubstanceMenu.substanceAdded = true;
-//        JButton substanceItem;
-//        substanceItem = new JButton(newSub.getName());
-//        substanceItem.setBackground(newSub.getColor());
-//        substanceItem.setMaximumSize(substanceItem.getPreferredSize());
-//        Main.SubstanceMenu.addNewSubToMenu(substanceItem);
     }
 
-    @Override
-    public void stateChanged(ChangeEvent e) {
-        this.vis = Double.valueOf(v.getValue()) / 10;
-        this.wei = Double.valueOf(w.getValue()) / 10;
-        this.den = Double.valueOf(d.getValue()) / 10;
-        this.decay = Double.valueOf(v.getValue()) / 10;
-        this.flammability = Double.valueOf(w.getValue()) / 10;
-        this.volat = Double.valueOf(volatility.getValue()) / 10;
+    public void newReaction() {
+        
+        try {
+            System.out.println(
+                    reactantComponent.dropBox.getSelectedItem().toString());
+            System.out.println(
+                    productComponent.dropBox.getSelectedItem().toString());
+
+            SubstanceInteraction newReaction = new SubstanceInteraction(Main.SubstanceMenu.substanceByName(
+                    reactantComponent.dropBox.getSelectedItem().toString()),
+                    Main.SubstanceMenu.substanceByName(productComponent.dropBox.getSelectedItem().toString()),
+                    SubstanceInteraction.ReactionOutcome.CHANGED,
+                    SubstanceInteraction.ReactionOutcome.UNCHANGED,
+                    Double.valueOf( volatility.getValue())/100);
+            interactionList.add(newReaction);
+            JOptionPane.showMessageDialog(this, "Substance Interaction saved, to add another change the sliders and click Add Reaction.");
+        } catch (NullPointerException n) {
+            JOptionPane.showMessageDialog(this, "Some sliders were not initialized, initialize them and retry adding your reaction");
+        }
     }
 
     //buggy, we need a way to deselect the buttons whenever we click them, but we only want to deselect the buttons that weren't just clicked. will use action listeners instead.
     @Override
     public void itemStateChanged(ItemEvent e) {
-        String button = ((JRadioButton) e.getSource()).getText();
-        System.out.println(button);
+        String type = e.getSource().toString().split("text=")[1].split("]")[0];
 
-        switch (button) {
+        switch (type) {
             case "Gas":
                 bg.clearSelection();
                 this.substanceState = Substance.State.GAS;
@@ -238,8 +221,20 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
                 this.substanceState = Substance.State.LIQUID;
                 break;
 
+        }
+
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String name = ((JButton) e.getSource()).getText();
+        switch (name) {
             case "Create":
                 createSubstance();
+                break;
+
+            case "Add Reaction":
+                newReaction();
                 break;
 
         }
@@ -285,11 +280,12 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
 
         Substance selectedSub;
         JComboBox dropBox;
+        
 
         public ReactivityRect(JLabel type) {
             add(Box.createHorizontalStrut(5));
             add(type);
-            dropBox = new JComboBox(initSubs(substances));
+            dropBox = new JComboBox(initSubs(substances, type));
             add(dropBox);
 
             dropBox.addItemListener(this);
@@ -307,10 +303,13 @@ public class UI extends JPanel implements ChangeListener, ItemListener {
             g.fillRect(0, 10, 10, 10);
         }
 
-        public String[] initSubs(Substance[] substances) {
+        public String[] initSubs(Substance[] substances, JLabel type) {
             ArrayList<String> subs = new ArrayList<>();
 
             for (Substance sub : substances) {
+                if( !(type.getText().equalsIgnoreCase("reactant") && 
+                        (sub.getName().equalsIgnoreCase("Wall") || sub.getName().equalsIgnoreCase("Fire"))))
+                    
                 subs.add(sub.getName());
             }
 
