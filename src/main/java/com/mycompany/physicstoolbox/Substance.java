@@ -139,9 +139,6 @@ public class Substance {
         for (int i = NUM_OF_SAMPLE_SUBS; i < savedSubs.size(); i++) {
             subJsonObj = new JSONObject();
             savedSub = savedSubs.get(i);
-//            for (Substance sub : Main.allSubstances) { //can't save the substances for UI, otherwise it will corrupt the file by printing multiple copies of each sub.
-//                if (!savedSub.getName().equalsIgnoreCase(sub.getName())) {
-
                     JSONObject colorJsonObj = new JSONObject();
                     colorJsonObj.put("r", savedSub.getColor().getRed());
                     colorJsonObj.put("g", savedSub.getColor().getGreen());
@@ -178,8 +175,6 @@ public class Substance {
 
                     json.add(subJsonObj);
                 }
-//            }
-//        }
 
             try {
                 PrintWriter writer = new PrintWriter("SavedSubstances.json");

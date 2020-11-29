@@ -8,8 +8,6 @@ import java.awt.event.WindowEvent;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.beans.PropertyChangeListener;
-import java.beans.*;
 
 public class Main extends JFrame {
 
@@ -21,27 +19,33 @@ public class Main extends JFrame {
 
     static class SubstanceMenu extends JPanel implements ActionListener {
 
-        public static boolean substanceAdded = false;
-        PropertyChangeSupport pcs = new PropertyChangeSupport(this);
         public JLabel menu = new JLabel("Placeholder");
+        public static Substance newMenuItem;
+        private final Timer TIMER = new Timer(1000, this);
+
+        private final int TIMER_SPEED = 5;
 
         public void actionPerformed(ActionEvent e) {
-            String name = ((JButton) e.getSource()).getText();
-            Substance.setCurrentlySelected(substanceByName(name));
-
-        }
-
-//          @Override
-//        public void propertyChange(PropertyChangeEvent event) {
-//        if (event.getNewValue() == true) {
-//            System.out.println(event.getNewValue().toString());
-//        }
-//    }
-        public void rescanSubstances() {
-            if (substanceAdded) {
-                substanceAdded = false;
+            if (e.getSource() == TIMER) {
+                if(newMenuItem != null){
+                addSubstanceToMenu(newMenuItem);
+                String name = newMenuItem.getName();
+                substanceItem = new JButton(name);
+                substanceItem.setBackground(newMenuItem.getColor());
+                substanceItem.setMaximumSize(substanceItem.getPreferredSize());
+                this.add(substanceItem);
+                substanceItem.addActionListener(this);
+                this.revalidate();
                 this.repaint();
+                newMenuItem = null;
+                }
+            } else {
+                String name = ((JButton) e.getSource()).getText();
+
+                Substance.setCurrentlySelected(substanceByName(name));
+
             }
+
         }
 
         public SubstanceMenu() {
@@ -57,7 +61,8 @@ public class Main extends JFrame {
                 add(substanceItem);
                 substanceItem.addActionListener(this);
             }
-
+            TIMER.start();
+            
         }
 
         public static Substance substanceByName(String name) {
@@ -69,11 +74,6 @@ public class Main extends JFrame {
             System.out.println("No substance found, the selected substance will remain the same.");
             return Substance.getCurrentlySelected();
         }
-//        public static boolean substanceIncluded(String name){
-//            for( Substance sub: allSubstances){
-//                if(name.equals(sub.getName()))
-//            }
-//        }
     }
 
     public static void main(String[] args) {
@@ -109,13 +109,6 @@ public class Main extends JFrame {
         frame.pack();
         frame.getContentPane().setLayout(new BorderLayout());
         frame.setVisible(true);
-//        System.out.println(" Flammability is: "+ ui.flammability);
-//        System.out.println(" Viscosity is: "+ ui.vis);
-//        System.out.println(" Weight is: "+ ui.wei);
-//        System.out.println(" Density is: "+ ui.den);
-//        System.out.println(" decy rate is: "+ ui.decay);
-//        System.out.println(" volatility is: "+ ui.volat);
-
     }
 
     public static void addSubstanceToMenu(Substance sub) {

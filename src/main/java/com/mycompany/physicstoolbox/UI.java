@@ -166,27 +166,12 @@ public class UI extends JPanel implements ItemListener, ActionListener {
         }
         interactionList.clear();
         Substance.addCustomSubstance(newSub);
-        Main.addSubstanceToMenu(newSub);
-
-//        newSub.addReaction(
-//                new SubstanceInteraction(Main.SubstanceMenu.substanceByName(
-//                        reactantComponent.dropBox.getName()),
-//                        Main.SubstanceMenu.substanceByName(productComponent.dropBox.getSelectedItem().toString()),
-//                        SubstanceInteraction.ReactionOutcome.CHANGED,
-//                        SubstanceInteraction.ReactionOutcome.UNCHANGED,
-//                        this.volat
-//                ));
-        Main.SubstanceMenu.substanceAdded = true;
+        Main.SubstanceMenu.newMenuItem = newSub;
     }
 
     public void newReaction() {
         
         try {
-            System.out.println(
-                    reactantComponent.dropBox.getSelectedItem().toString());
-            System.out.println(
-                    productComponent.dropBox.getSelectedItem().toString());
-
             SubstanceInteraction newReaction = new SubstanceInteraction(Main.SubstanceMenu.substanceByName(
                     reactantComponent.dropBox.getSelectedItem().toString()),
                     Main.SubstanceMenu.substanceByName(productComponent.dropBox.getSelectedItem().toString()),
@@ -199,7 +184,7 @@ public class UI extends JPanel implements ItemListener, ActionListener {
             JOptionPane.showMessageDialog(this, "Some sliders were not initialized, initialize them and retry adding your reaction");
         }
     }
-
+ 
     //buggy, we need a way to deselect the buttons whenever we click them, but we only want to deselect the buttons that weren't just clicked. will use action listeners instead.
     @Override
     public void itemStateChanged(ItemEvent e) {
@@ -207,17 +192,26 @@ public class UI extends JPanel implements ItemListener, ActionListener {
 
         switch (type) {
             case "Gas":
-                bg.clearSelection();
+                bg.getElements().asIterator().forEachRemaining(
+                        (z)->{
+                            z.setSelected(false);
+                        });
                 this.substanceState = Substance.State.GAS;
                 break;
 
             case "Solid":
-                bg.clearSelection();
+                bg.getElements().asIterator().forEachRemaining(
+                        (z)->{
+                            z.setSelected(false);
+                        });
                 this.substanceState = Substance.State.SOLID;
                 break;
 
             case "Liquid":
-                bg.clearSelection();
+                bg.getElements().asIterator().forEachRemaining(
+                        (z)->{
+                            z.setSelected(false);
+                        });
                 this.substanceState = Substance.State.LIQUID;
                 break;
 
