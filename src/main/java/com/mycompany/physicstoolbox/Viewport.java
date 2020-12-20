@@ -21,13 +21,13 @@ public class Viewport extends JPanel {
     private static final int PIXEL_GRID_WIDTH = 400;
     private static final int PIXEL_GRID_HEIGHT = 300;
     
-    public static Viewport getInstance(Dimension size) {
+    public static Viewport getInstance(int windowWidth, Dimension size) {
         if(size.width % PIXEL_GRID_WIDTH != 0 || size.height % PIXEL_GRID_HEIGHT != 0) {
             throw new NumberFormatException("Dimensions must be divisible by (" + PIXEL_GRID_WIDTH + ", " + PIXEL_GRID_HEIGHT + ") for pixel mapping.");
         }
         
         if(instance == null) {
-            instance = new Viewport(size);
+            instance = new Viewport(windowWidth, size);
         }
         return instance;
     }
@@ -40,7 +40,7 @@ public class Viewport extends JPanel {
     private Pixel[][] grid;
     private int brushSize;
     
-    private Viewport(Dimension size) {
+    private Viewport(int windowWidth, Dimension size) {
         super();
         backgroundColor = new Color(0, 0, 0);
         grid = new Pixel[PIXEL_GRID_HEIGHT][PIXEL_GRID_WIDTH];
@@ -54,7 +54,7 @@ public class Viewport extends JPanel {
             }
         }
         
-        setPreferredSize(size);
+        setBounds(windowWidth - (size.width + 20), 5, size.width, size.height);
         setBackground(backgroundColor);
         
         MouseListener listener = new MouseListener();
