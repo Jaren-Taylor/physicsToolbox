@@ -26,6 +26,8 @@ public class Main extends JFrame {
         Substance.setAlternateSelected(allSubstances[1]);
 
         JFrame frame = new JFrame("Physics Toolbox");
+        frame.getContentPane().setLayout(null);
+        
         Viewport vp = Viewport.getInstance(WINDOW_SIZE.width, VIEWPORT_SIZE);
         
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -43,7 +45,6 @@ public class Main extends JFrame {
         });
 
         frame.pack();
-        frame.getContentPane().setLayout(null);
         frame.setVisible(true);
     }
 

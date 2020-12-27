@@ -22,11 +22,19 @@ public class Viewport extends JPanel {
     private static final int PIXEL_GRID_HEIGHT = 300;
     
     public static Viewport getInstance(int windowWidth, Dimension size) {
-        if(size.width % PIXEL_GRID_WIDTH != 0 || size.height % PIXEL_GRID_HEIGHT != 0) {
-            throw new NumberFormatException("Dimensions must be divisible by (" + PIXEL_GRID_WIDTH + ", " + PIXEL_GRID_HEIGHT + ") for pixel mapping.");
-        }
-        
         if(instance == null) {
+            if(windowWidth <= 0) {
+                throw new NumberFormatException("Window must have a positive width.");
+            }
+            
+            if(size == null) {
+                throw new IllegalArgumentException("Viewport dimension cannot be null.");
+            }
+            
+            if(size.width % PIXEL_GRID_WIDTH != 0 || size.height % PIXEL_GRID_HEIGHT != 0) {
+                throw new NumberFormatException("Dimensions must be divisible by (" + PIXEL_GRID_WIDTH + ", " + PIXEL_GRID_HEIGHT + ") for pixel mapping.");
+            }
+            
             instance = new Viewport(windowWidth, size);
         }
         return instance;
@@ -65,7 +73,15 @@ public class Viewport extends JPanel {
         TIMER.scheduleAtFixedRate(updater, 0, TIMER_SPEED);
     }
     
+    public Color getBackgroundColor() {
+        return backgroundColor;
+    }
+    
     public void setBackgroundColor(Color c) {
+        if(c == null) {
+            c = new Color(0, 0, 0);
+        }
+        
         backgroundColor = c;
         setBackground(c);
     }

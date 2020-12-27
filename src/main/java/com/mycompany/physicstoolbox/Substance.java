@@ -15,7 +15,7 @@ import org.json.simple.parser.JSONParser;
 
 public class Substance {
 
-    public static final Substance NONE = new Substance(-1, null, null, 0, 0, 0, null);
+    public static final Substance NONE = new Substance(-1, null, "Void", 0, 0, 0, null);
 
     private static Substance[] selected = new Substance[2];
     private static List<Substance> savedSubs = new ArrayList<>();
@@ -36,7 +36,7 @@ public class Substance {
     public static void loadSavedSubstances() {
         savedSubs.clear();
 
-        Substance[] sampleSubs = new Substance[]{WALL, WATER, SAND, STONE, SALT, SALT_WATER, OIL, LAVA, METAL, FIRE, PLANT};
+        Substance[] sampleSubs = new Substance[] { WALL, WATER, SAND, STONE, SALT, SALT_WATER, OIL, LAVA, METAL, FIRE, PLANT };
 
         NUM_OF_SAMPLE_SUBS = sampleSubs.length;
 
@@ -201,11 +201,13 @@ public class Substance {
         if(id == -1) {
             return Substance.NONE;
         }
+        
         for (Substance sub : savedSubs) {
             if (sub.getId() == id) {
                 return sub;
             }
         }
+        
         return null;
     }
 
@@ -295,9 +297,9 @@ public class Substance {
     }
 
     public Color getColor() {
-        // If no color exists, return transparent instead of null.
-        if (color == null) {
-            return new Color(0, 0, 0, 0);
+        // If this is Substance.NONE, return the background color
+        if (this.equals(Substance.NONE)) {
+            return Viewport.getInstance(0, null).getBackgroundColor();
         }
         return color;
     }
@@ -448,6 +450,11 @@ public class Substance {
             }
         }
         return false;
+    }
+    
+    @Override
+    public String toString() {
+        return name == null ? "[NoName]" : name;
     }
 
     public enum State {

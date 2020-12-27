@@ -10,5 +10,6 @@ com\mycompany\physicstoolbox\Viewport$MouseListener.class
 com\mycompany\physicstoolbox\Viewport$Updater.class
 com\mycompany\physicstoolbox\SubstanceInteraction$ReactionOutcome.class
 com\mycompany\physicstoolbox\UI.class
+com\mycompany\physicstoolbox\UI$ColorBox.class
 com\mycompany\physicstoolbox\UI$SubstanceEditor.class
 com\mycompany\physicstoolbox\Main$1.class
