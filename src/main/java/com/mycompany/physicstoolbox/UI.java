@@ -20,15 +20,15 @@ public abstract class UI {
     
     private static class SubstanceEditor extends JPanel {
         
-        private JLabel titleLbl, nameLbl, colorLbl, viscosityLbl, weightLbl, densityLbl,
-                       stateLbl, reactionsLbl, reactantLbl, productLbl;
+        private JLabel titleLbl, nameLbl, colorLbl, viscosityLbl, weightLbl, densityLbl, stateLbl, reactionsLbl,
+                       reactantLbl, productLbl, srcOutcomeLbl, rctOutcomeLbl, volatilityLbl;
         private ColorBox colorPanel, reactantPanel, productPanel;
         private JTextField nameInput;
         private JSlider rSlider, gSlider, bSlider, viscositySlider, weightSlider, densitySlider,
                         flammableSlider, decaySlider, volatilitySlider;
-        private JRadioButton solidRadio, liquidRadio, gasRadio, sourceUnchangedRadio, sourceChangedRadio,
-                             sourceDestroyedRadio, reactantUnchangedRadio, reactantChangedRadio, reactantDestroyedRadio;
-        private ButtonGroup stateGroup, sourceOutcomeGroup, reactantOutcomeGroup;
+        private JRadioButton solidRadio, liquidRadio, gasRadio, srcUnchangedRadio, srcChangedRadio,
+                             srcDestroyedRadio, rctUnchangedRadio, rctChangedRadio, rctDestroyedRadio;
+        private ButtonGroup stateGroup, srcOutcomeGroup, rctOutcomeGroup;
         private JCheckBox flammableBox, decayBox;
         private JComboBox reactionsDropdown, reactantDropdown, productDropdown;
         private JButton resetBtn, saveBtn;
@@ -36,10 +36,13 @@ public abstract class UI {
         private final int PADDING = 5;
         
         private final int TITLE_COMPONENT_HEIGHT = 30;
-        private final int REACTANT_PRODUCT_LABEL_WIDTH = 60;
-        private final int FLAMMABLE_DECAY_LABEL_WIDTH = 100;
         private final int COMPONENT_HEIGHT = 20;
         private final int COMPONENT_WIDTH;
+        
+        private final int REACTANT_PRODUCT_LABEL_WIDTH = 60;
+        private final int FLAMMABLE_DECAY_LABEL_WIDTH = 90;
+        private final int SOURCE_REACTANT_LABEL_WIDTH = 60;
+        private final int VOLATILITY_LABEL_WIDTH = 60;
         
         private final Font TITLE_FONT = new Font("Bahnschrift", Font.PLAIN, 30);
         private final Font LABEL_FONT = new Font("Bahnschrift", Font.PLAIN, 16);
@@ -89,11 +92,17 @@ public abstract class UI {
             
             reactantLbl = new JLabel("Reactant");
             reactantLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (27 * COMPONENT_HEIGHT) + PADDING, REACTANT_PRODUCT_LABEL_WIDTH, COMPONENT_HEIGHT);
-            //reactantLbl.setFont(LABEL_FONT);
             
             productLbl = new JLabel("Product");
             productLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (28 * COMPONENT_HEIGHT) + PADDING, REACTANT_PRODUCT_LABEL_WIDTH, COMPONENT_HEIGHT);
-            //productLbl.setFont(LABEL_FONT);
+            
+            srcOutcomeLbl = new JLabel("Source:");
+            srcOutcomeLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, SOURCE_REACTANT_LABEL_WIDTH, COMPONENT_HEIGHT);
+            
+            rctOutcomeLbl = new JLabel("Reactant:");
+            rctOutcomeLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, SOURCE_REACTANT_LABEL_WIDTH, COMPONENT_HEIGHT);
+            
+            volatilityLbl = new JLabel("Volatility");
             
             /* ---------- */
             
@@ -138,8 +147,11 @@ public abstract class UI {
             densitySlider.setPaintTicks(true);
             
             flammableSlider = new JSlider(0, 100, 0);
+            flammableSlider.setBounds(FLAMMABLE_DECAY_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (24 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH - (FLAMMABLE_DECAY_LABEL_WIDTH + PADDING), COMPONENT_HEIGHT);
             
             decaySlider = new JSlider(0, 100, 0);
+            decaySlider.setBounds(FLAMMABLE_DECAY_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (25 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH - (FLAMMABLE_DECAY_LABEL_WIDTH + PADDING), COMPONENT_HEIGHT);
+
             
             volatilitySlider = new JSlider(0, 100, 0);
             
@@ -154,23 +166,29 @@ public abstract class UI {
             gasRadio = new JRadioButton("Gas", false);
             gasRadio.setBounds(PADDING + ((2 * COMPONENT_WIDTH) / 3), TITLE_COMPONENT_HEIGHT + (19 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH / 3, COMPONENT_HEIGHT);
             
-            sourceUnchangedRadio = new JRadioButton("Don't Change", false);
+            srcUnchangedRadio = new JRadioButton("Don't Change", false);
+            srcUnchangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
             
-            sourceChangedRadio = new JRadioButton("Change", true);
+            srcChangedRadio = new JRadioButton("Change", true);
+            srcChangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
             
-            sourceDestroyedRadio = new JRadioButton("Destroy", false);
+            srcDestroyedRadio = new JRadioButton("Destroy", false);
+            srcDestroyedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((2 * (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH)) / 3), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
             
-            reactantUnchangedRadio = new JRadioButton("Don't Change", false);
+            rctUnchangedRadio = new JRadioButton("Don't Change", false);
+            rctUnchangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
             
-            reactantChangedRadio = new JRadioButton("Change", true);
+            rctChangedRadio = new JRadioButton("Change", true);
+            rctChangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
             
-            reactantDestroyedRadio = new JRadioButton("Destroy", false);
+            rctDestroyedRadio = new JRadioButton("Destroy", false);
+            rctDestroyedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((2 * (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH)) / 3), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
             
             /* ---------- */
             
             stateGroup = new ButtonGroup();
-            sourceOutcomeGroup = new ButtonGroup();
-            reactantOutcomeGroup = new ButtonGroup();
+            srcOutcomeGroup = new ButtonGroup();
+            rctOutcomeGroup = new ButtonGroup();
             
             /* ---------- */
             
@@ -213,6 +231,9 @@ public abstract class UI {
             add(reactionsLbl);
             add(reactantLbl);
             add(productLbl);
+            add(srcOutcomeLbl);
+            add(rctOutcomeLbl);
+            add(volatilityLbl);
             
             add(colorPanel);
             add(reactantPanel);
@@ -237,18 +258,18 @@ public abstract class UI {
             add(liquidRadio);
             add(gasRadio);
             
-            sourceOutcomeGroup.add(sourceUnchangedRadio);
-            sourceOutcomeGroup.add(sourceChangedRadio);
-            sourceOutcomeGroup.add(sourceDestroyedRadio);
-            reactantOutcomeGroup.add(sourceUnchangedRadio);
-            reactantOutcomeGroup.add(sourceChangedRadio);
-            reactantOutcomeGroup.add(sourceDestroyedRadio);
-            add(sourceUnchangedRadio);
-            add(sourceChangedRadio);
-            add(sourceDestroyedRadio);
-            add(reactantUnchangedRadio);
-            add(reactantChangedRadio);
-            add(reactantDestroyedRadio);
+            srcOutcomeGroup.add(srcUnchangedRadio);
+            srcOutcomeGroup.add(srcChangedRadio);
+            srcOutcomeGroup.add(srcDestroyedRadio);
+            rctOutcomeGroup.add(srcUnchangedRadio);
+            rctOutcomeGroup.add(srcChangedRadio);
+            rctOutcomeGroup.add(srcDestroyedRadio);
+            add(srcUnchangedRadio);
+            add(srcChangedRadio);
+            add(srcDestroyedRadio);
+            add(rctUnchangedRadio);
+            add(rctChangedRadio);
+            add(rctDestroyedRadio);
             
             add(decayBox);
             add(flammableBox);
@@ -286,7 +307,7 @@ public abstract class UI {
             setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED));
         }
         
-        public Color getColor() {
+        public Color getFillColor() {
             return boxColor;
         }
         
