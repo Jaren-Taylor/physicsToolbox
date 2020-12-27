@@ -21,17 +21,17 @@ public class Substance {
     private static List<Substance> savedSubs = new ArrayList<>();
     private static int NUM_OF_SAMPLE_SUBS;
 
-    private static final Substance WALL = new Substance(0, new Color(180, 180, 180), "Wall", 1, 1, 1, State.SOLID);
-    private static final Substance WATER = new Substance(1, new Color(0, 50, 255), "Water", 0.2, 0.75, 0.5, State.LIQUID);
-    private static final Substance SAND = new Substance(2, new Color(255, 255, 160), "Sand", 1, 0.9, 0.7, State.LIQUID);
-    private static final Substance STONE = new Substance(3, new Color(128, 128, 128), "Stone", 1, 1, 0.99, State.LIQUID);
-    private static final Substance SALT = new Substance(4, new Color(255, 255, 255), "Salt", 1, 0.6, 0.5, State.LIQUID);
-    private static final Substance SALT_WATER = new Substance(5, new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.6, State.LIQUID);
-    private static final Substance OIL = new Substance(6, new Color(170, 80, 50), "Oil", 0, 0.75, 0.3, State.LIQUID);
-    private static final Substance LAVA = new Substance(7, new Color(255, 125, 0), "Lava", 0.9, 1, 1, State.LIQUID);
-    private static final Substance METAL = new Substance(8, new Color(75, 75, 75), "Metal", 0.5, 1, 1, State.SOLID);
-    private static final Substance FIRE = new Substance(9, new Color(255, 50, 50), "Fire", 0.1, -0.75, 0, State.LIQUID);
-    private static final Substance PLANT = new Substance(10, new Color(50, 225, 50), "Plant", 1, 0.5, 1, State.SOLID);
+    public static final Substance WALL = new Substance(0, new Color(180, 180, 180), "Wall", 1, 1, 1, State.SOLID);
+    public static final Substance WATER = new Substance(1, new Color(0, 50, 255), "Water", 0.2, 0.75, 0.5, State.LIQUID);
+    public static final Substance SAND = new Substance(2, new Color(255, 255, 160), "Sand", 1, 0.9, 0.7, State.LIQUID);
+    public static final Substance STONE = new Substance(3, new Color(128, 128, 128), "Stone", 1, 1, 0.99, State.LIQUID);
+    public static final Substance SALT = new Substance(4, new Color(255, 255, 255), "Salt", 1, 0.6, 0.5, State.LIQUID);
+    public static final Substance SALT_WATER = new Substance(5, new Color(100, 160, 255), "Salt Water", 0.25, 0.8, 0.6, State.LIQUID);
+    public static final Substance OIL = new Substance(6, new Color(170, 80, 50), "Oil", 0, 0.75, 0.3, State.LIQUID);
+    public static final Substance LAVA = new Substance(7, new Color(255, 125, 0), "Lava", 0.9, 1, 1, State.LIQUID);
+    public static final Substance METAL = new Substance(8, new Color(75, 75, 75), "Metal", 0.5, 1, 1, State.SOLID);
+    public static final Substance FIRE = new Substance(9, new Color(255, 50, 50), "Fire", 0.1, -0.75, 0, State.LIQUID);
+    public static final Substance PLANT = new Substance(10, new Color(50, 225, 50), "Plant", 1, 0.5, 1, State.SOLID);
 
     public static void loadSavedSubstances() {
         savedSubs.clear();

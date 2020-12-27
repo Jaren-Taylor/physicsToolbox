@@ -5,6 +5,9 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.BevelBorder;
 
@@ -31,12 +34,14 @@ public abstract class UI {
         private ButtonGroup stateGroup, srcOutcomeGroup, rctOutcomeGroup;
         private JCheckBox flammableBox, decayBox;
         private JComboBox reactionsDropdown, reactantDropdown, productDropdown;
-        private JButton resetBtn, saveBtn;
+        private JButton deleteReactionBtn, addReactionBtn, resetBtn, saveBtn;
+        
+        private List<Substance> substanceExclusions = new ArrayList<>();
         
         private final int PADDING = 5;
         
         private final int TITLE_COMPONENT_HEIGHT = 30;
-        private final int COMPONENT_HEIGHT = 20;
+        private final int COMPONENT_HEIGHT = 18;
         private final int COMPONENT_WIDTH;
         
         private final int REACTANT_PRODUCT_LABEL_WIDTH = 60;
@@ -90,10 +95,10 @@ public abstract class UI {
             reactionsLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (21 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH, COMPONENT_HEIGHT);
             reactionsLbl.setFont(LABEL_FONT);
             
-            reactantLbl = new JLabel("Reactant");
+            reactantLbl = new JLabel("Reactant:");
             reactantLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (27 * COMPONENT_HEIGHT) + PADDING, REACTANT_PRODUCT_LABEL_WIDTH, COMPONENT_HEIGHT);
             
-            productLbl = new JLabel("Product");
+            productLbl = new JLabel("Product:");
             productLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (28 * COMPONENT_HEIGHT) + PADDING, REACTANT_PRODUCT_LABEL_WIDTH, COMPONENT_HEIGHT);
             
             srcOutcomeLbl = new JLabel("Source:");
@@ -102,7 +107,8 @@ public abstract class UI {
             rctOutcomeLbl = new JLabel("Reactant:");
             rctOutcomeLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, SOURCE_REACTANT_LABEL_WIDTH, COMPONENT_HEIGHT);
             
-            volatilityLbl = new JLabel("Volatility");
+            volatilityLbl = new JLabel("Volatility:");
+            volatilityLbl.setBounds(PADDING, TITLE_COMPONENT_HEIGHT + (33 * COMPONENT_HEIGHT) + PADDING, VOLATILITY_LABEL_WIDTH, COMPONENT_HEIGHT);
             
             /* ---------- */
             
@@ -151,9 +157,9 @@ public abstract class UI {
             
             decaySlider = new JSlider(0, 100, 0);
             decaySlider.setBounds(FLAMMABLE_DECAY_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (25 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH - (FLAMMABLE_DECAY_LABEL_WIDTH + PADDING), COMPONENT_HEIGHT);
-
             
             volatilitySlider = new JSlider(0, 100, 0);
+            volatilitySlider.setBounds(VOLATILITY_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (33 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH - (VOLATILITY_LABEL_WIDTH + PADDING), COMPONENT_HEIGHT);
             
             /* ---------- */
             
@@ -166,23 +172,23 @@ public abstract class UI {
             gasRadio = new JRadioButton("Gas", false);
             gasRadio.setBounds(PADDING + ((2 * COMPONENT_WIDTH) / 3), TITLE_COMPONENT_HEIGHT + (19 * COMPONENT_HEIGHT) + PADDING, COMPONENT_WIDTH / 3, COMPONENT_HEIGHT);
             
-            srcUnchangedRadio = new JRadioButton("Don't Change", false);
-            srcUnchangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
+            srcUnchangedRadio = new JRadioButton("No Change", false);
+            srcUnchangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3, COMPONENT_HEIGHT);
             
             srcChangedRadio = new JRadioButton("Change", true);
-            srcChangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
+            srcChangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3) + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3, COMPONENT_HEIGHT);
             
             srcDestroyedRadio = new JRadioButton("Destroy", false);
-            srcDestroyedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((2 * (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH)) / 3), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
+            srcDestroyedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((2 * (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH)) / 3) + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (30 * COMPONENT_HEIGHT) + PADDING, ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3) - (4 * PADDING), COMPONENT_HEIGHT);
             
-            rctUnchangedRadio = new JRadioButton("Don't Change", false);
-            rctUnchangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
+            rctUnchangedRadio = new JRadioButton("No Change", false);
+            rctUnchangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3, COMPONENT_HEIGHT);
             
             rctChangedRadio = new JRadioButton("Change", true);
-            rctChangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
+            rctChangedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3) + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3, COMPONENT_HEIGHT);
             
             rctDestroyedRadio = new JRadioButton("Destroy", false);
-            rctDestroyedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((2 * (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH)) / 3), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, (COMPONENT_WIDTH - (SOURCE_REACTANT_LABEL_WIDTH + (2 * PADDING))) / 3, COMPONENT_HEIGHT);
+            rctDestroyedRadio.setBounds(SOURCE_REACTANT_LABEL_WIDTH + ((2 * (COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH)) / 3) + (2 * PADDING), TITLE_COMPONENT_HEIGHT + (31 * COMPONENT_HEIGHT) + PADDING, ((COMPONENT_WIDTH - SOURCE_REACTANT_LABEL_WIDTH) / 3) - (4 * PADDING), COMPONENT_HEIGHT);
             
             /* ---------- */
             
@@ -217,6 +223,8 @@ public abstract class UI {
             
             /* ---------- */
             
+            deleteReactionBtn = new JButton("Delete Reaction");
+            addReactionBtn = new JButton("Add Reaction");
             resetBtn = new JButton("Reset");
             saveBtn = new JButton("Save");
             
@@ -278,8 +286,31 @@ public abstract class UI {
             add(reactantDropdown);
             add(productDropdown);
             
+            add(deleteReactionBtn);
+            add(addReactionBtn);
             add(resetBtn);
             add(saveBtn);
+        }
+        
+        private Substance[] getSubsWithExclusions(Substance[] exclusions) {
+            List<Substance> subs = new ArrayList<>();
+            List<Substance> allExclusions = new ArrayList<>(substanceExclusions);
+            
+            subs.add(Substance.NONE);
+            subs.addAll(Arrays.asList(Substance.getSavedSubstances()));
+            
+            allExclusions.addAll(Arrays.asList(exclusions));
+            
+            for(Substance sub: subs) {
+                for(Substance s: allExclusions) {
+                    if(sub.getId() == s.getId()) {
+                        subs.remove(sub);
+                    }
+                }
+            }
+            
+            Substance[] finalSubs = new Substance[subs.size()];
+            return subs.toArray(finalSubs);
         }
     }
     
