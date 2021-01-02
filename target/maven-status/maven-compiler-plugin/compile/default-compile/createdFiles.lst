@@ -2,6 +2,7 @@ com\mycompany\physicstoolbox\Viewport$1.class
 com\mycompany\physicstoolbox\Pixel.class
 com\mycompany\physicstoolbox\Main.class
 com\mycompany\physicstoolbox\Substance$State.class
+com\mycompany\physicstoolbox\UI$SubstanceEditor$ActionHandler.class
 com\mycompany\physicstoolbox\SubstanceInteraction.class
 com\mycompany\physicstoolbox\Substance.class
 com\mycompany\physicstoolbox\UI$SubstanceMenu.class
