@@ -6,8 +6,11 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,12 +23,32 @@ import javax.swing.event.DocumentListener;
 
 public abstract class UI {
     
+    private static SubstanceEditor editor;
+    private static SubstanceMenu menu;
+    
     public static SubstanceEditor getSubstanceEditorComponent(Dimension frameDim, int viewportWidth) {
-        return new SubstanceEditor(frameDim, viewportWidth);
+        editor = new SubstanceEditor(frameDim, viewportWidth);
+        return editor;
     }
     
-    public static SubstanceMenu getSubstanceMenuComponent() {
-        return new SubstanceMenu();
+    public static SubstanceMenu getSubstanceMenuComponent(Dimension frameDim, Dimension viewportDim) {
+        menu = new SubstanceMenu(frameDim, viewportDim);
+        return menu;
+    }
+    
+    public static void setEditorSubstance(Substance sub) {
+        editor.setSelectedSubstance(sub);
+    }
+    
+    public static void setMenuOptions(Substance[] subs) {
+        menu.updateOptions(subs);
+    }
+    
+    public static void initializeSelectedSubstances() {
+        Substance.setCurrentlySelected(Substance.WALL);
+        Substance.setCurrentlySelected(Substance.CREATE_NEW);
+        
+        Substance.setAlternateSelected(Substance.WATER);
     }
     
     private static class SubstanceEditor extends JPanel {
@@ -72,10 +95,9 @@ public abstract class UI {
             
             setLayout(null);
             setBounds(5, 5, frameDim.width - (viewportWidth + 30), frameDim.height - 50);
+            setBorder(BorderFactory.createEtchedBorder());
             
             COMPONENT_WIDTH = getWidth() - (2 * PADDING);
-            
-            setBorder(BorderFactory.createEtchedBorder());
             
             // Initializing UI components
             titleLbl = new JLabel("Substance Editor");
@@ -399,7 +421,9 @@ public abstract class UI {
             }
             
             for(SubstanceInteraction si: substanceInteractions) {
-                newSub.addReaction(si);
+                if(!si.equals(SubstanceInteraction.CREATE_NEW)) {
+                    newSub.addReaction(si);
+                }
             }
             
             if(selectedSubstance.equals(Substance.CREATE_NEW)) {
@@ -535,18 +559,21 @@ public abstract class UI {
                 
                 SubstanceInteraction[] subInteractions = selectedSubstance.getReactions();
                 SubstanceInteraction flammableReaction = null;
-                SubstanceInteraction decayReaction = null;
+                SubstanceInteraction decayVoidReaction = null;
+                SubstanceInteraction decaySelfReaction = null;
                 
-                int decayReactions = 0;
                 for(SubstanceInteraction si: subInteractions) {
                     substanceExclusions.add(si.getReactant());
                     
                     if(si.getReactant().equals(Substance.FIRE) && si.getProduct().equals(Substance.FIRE)) {
                         flammableReaction = si;
+                        substanceExclusions.remove(Substance.FIRE);
                     }
-                    if((si.getReactant().equals(Substance.NONE) || si.getReactant().equals(selectedSubstance)) && si.getProduct().equals(Substance.NONE)) {
-                        decayReactions++;
-                        decayReaction = si;
+                    if(si.getReactant().equals(Substance.NONE) && si.getProduct().equals(Substance.NONE)) {
+                        decayVoidReaction = si;
+                    }
+                    if(si.getReactant().equals(selectedSubstance) && si.getProduct().equals(Substance.NONE)) {
+                        decaySelfReaction = si;
                     }
                 }
                 
@@ -554,19 +581,31 @@ public abstract class UI {
                 substanceInteractions.add(SubstanceInteraction.CREATE_NEW);
                 substanceInteractions.addAll(Arrays.asList(subInteractions));
                 
+                if(flammableReaction != null) {
+                    substanceInteractions.remove(flammableReaction);
+                }
+                if(decayVoidReaction != null && decaySelfReaction != null) {
+                    substanceInteractions.remove(decayVoidReaction);
+                    substanceInteractions.remove(decaySelfReaction);
+                    substanceExclusions.remove(Substance.NONE);
+                }
+                
                 flammableBox.setSelected(flammableReaction != null);
                 flammableSlider.setValue(flammableReaction == null ? 0 : (int) (flammableReaction.getVolatility() * 100));
-                decayBox.setSelected(decayReactions == 2);
-                decaySlider.setValue(decayReactions != 2 || decayReaction == null ? 0 : (int) (decayReaction.getVolatility() * 100));
+                decayBox.setSelected(decayVoidReaction != null && decaySelfReaction != null);
+                decaySlider.setValue(decayVoidReaction == null || decaySelfReaction == null ? 0 : (int) (decayVoidReaction.getVolatility() * 100));
                 
                 reactionsDropdown.setSelectedIndex(0);
                 reactionsDropdown.setModel(new DefaultComboBoxModel(getSubstanceInteractions()));
                 resetReactionsComponent((SubstanceInteraction) reactionsDropdown.getSelectedItem());
             }
+            
+            setFullEditorDisabled(false);
         }
         
         private void resetReactionsComponent(SubstanceInteraction selected) {
             reactantDropdown.setModel(new DefaultComboBoxModel(getSubsWithExclusions(true)));
+            productDropdown.setModel(new DefaultComboBoxModel(Substance.getSavedSubstances()));
             
             if(selected == SubstanceInteraction.CREATE_NEW) {
                 reactionsDropdown.setSelectedIndex(0);
@@ -611,6 +650,7 @@ public abstract class UI {
             setNameDisabled(set);
             setColorDisabled(set);
             setStateDisabled(set);
+            reactionsLbl.setForeground(set ? Color.LIGHT_GRAY : Color.BLACK);
             setReactionsDropdownDisabled(set);
             setReactantDropdownDisabled(set);
             setProductDropdownDisabled(set);
@@ -659,6 +699,7 @@ public abstract class UI {
                     rctChangedRadio.setSelected(false);
                     rctDestroyedRadio.setSelected(false);
                     
+                    setSourceUnchangedDisabled(true);
                     setReactantChangedDisabled(true);
                     setReactantDestroyedDisabled(true);
                 } else {
@@ -764,6 +805,10 @@ public abstract class UI {
         
         private void setSourceUnchangedDisabled(boolean set) {
             srcUnchangedRadio.setEnabled(!set);
+            if(set && srcUnchangedRadio.isSelected()) {
+                srcUnchangedRadio.setSelected(false);
+                srcChangedRadio.setSelected(true);
+            }
             
             boolean wholeComponentDisabled = !srcUnchangedRadio.isEnabled() && !srcChangedRadio.isEnabled() && !srcDestroyedRadio.isEnabled();
             srcOutcomeLbl.setForeground(wholeComponentDisabled ? Color.LIGHT_GRAY : Color.BLACK);
@@ -859,6 +904,12 @@ public abstract class UI {
                         rctChangedRadio.setSelected(false);
                         rctDestroyedRadio.setSelected(false);
                         
+                        if(srcUnchangedRadio.isSelected()) {
+                            srcUnchangedRadio.setSelected(false);
+                            srcChangedRadio.setSelected(true);
+                        }
+                        
+                        setSourceUnchangedDisabled(true);
                         setReactantChangedDisabled(true);
                         setReactantDestroyedDisabled(true);
                     } else {
@@ -920,10 +971,83 @@ public abstract class UI {
     
     private static class SubstanceMenu extends JPanel {
         
-        public SubstanceMenu() {
+        private PressHandler handler = new PressHandler();
+        
+        private List<SubstanceButton> options = new ArrayList<>();
+        
+        private final int ROW_NUMBER = 6;
+        private final int COLUMN_NUMBER = 6;
+        private final int H_GAP = 2;
+        private final int V_GAP = 2;
+        
+        public SubstanceMenu(Dimension frameDim, Dimension viewportDim) {
             super();
             
+            setLayout(new GridLayout(ROW_NUMBER, COLUMN_NUMBER, H_GAP, V_GAP));
+            setBounds(frameDim.width - (viewportDim.width + 20), viewportDim.height + 10, viewportDim.width, frameDim.height - (viewportDim.height + 55));
+            setBorder(BorderFactory.createEtchedBorder());
             
+            options.add(new SubstanceButton(Substance.CREATE_NEW, handler, handler));
+            for(Substance sub: Substance.getSavedSubstances()) {
+                options.add(new SubstanceButton(sub, handler, handler));
+            }
+            
+            for(SubstanceButton button: options) {
+                add(button);
+            }
+        }
+        
+        public void updateOptions(Substance[] subs) {
+            List<Substance> substances = new ArrayList<>();
+            substances.add(Substance.CREATE_NEW);
+            substances.addAll(Arrays.asList(subs));
+            
+            options = new ArrayList<>();
+            for(Substance sub: substances) {
+                options.add(new SubstanceButton(sub, handler, handler));
+            }
+            
+            removeAll();
+            
+            for(SubstanceButton button: options) {
+                add(button);
+            }
+            
+            repaint();
+        }
+        
+        public void refreshButtons() {
+            for(SubstanceButton button: options) {
+                button.repaint();
+            }
+        }
+        
+        private class PressHandler extends MouseAdapter implements ActionListener {
+            
+            private boolean rightClickHeld = false;
+            
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                Substance.setCurrentlySelected(((SubstanceButton) event.getSource()).getSubstance());
+                refreshButtons();
+            }
+            
+            @Override
+            public void mousePressed(MouseEvent event) {
+                if(event.getButton() == MouseEvent.BUTTON3) {
+                    rightClickHeld = true;
+                }
+            }
+            
+            @Override
+            public void mouseReleased(MouseEvent event) {
+                if(event.getButton() == MouseEvent.BUTTON3 && rightClickHeld) {
+                    rightClickHeld = false;
+                    
+                    Substance.setAlternateSelected(((SubstanceButton) event.getSource()).getSubstance());
+                    refreshButtons();
+                }
+            }
         }
     }
     
@@ -961,6 +1085,52 @@ public abstract class UI {
             
             graphics.setColor(boxColor == null ? new Color(128, 128, 128) : boxColor);
             graphics.fillRect(0, 0, getWidth(), getHeight());
+        }
+    }
+    
+    protected static class SubstanceButton extends JButton {
+        
+        private final Substance substance;
+        
+        public SubstanceButton(Substance sub, ActionListener pressListener, MouseAdapter rightPressListener) {
+            super(sub.getName());
+            
+            substance = sub;
+            
+            Color subColor = sub.equals(Substance.CREATE_NEW) ? Color.WHITE : sub.getColor();
+            setBackground(subColor);
+            setForeground((subColor.getRed() + subColor.getGreen() + subColor.getBlue()) >= 384 ? Color.BLACK : Color.WHITE);
+            
+            addActionListener(pressListener);
+            addMouseListener(rightPressListener);
+        }
+        
+        public Substance getSubstance() {
+            return substance;
+        }
+        
+        @Override
+        public void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            
+            if(Substance.getCurrentlySelected().equals(substance)) {
+                graphics.setColor(Color.RED);
+                graphics.fillOval(5, 5, getHeight() - 10, getHeight() - 10);
+                graphics.setColor(Color.BLACK);
+                graphics.drawOval(5, 5, getHeight() - 10, getHeight() - 10);
+                
+                if(Substance.getAlternateSelected().equals(substance)) {
+                    graphics.setColor(Color.BLUE);
+                    graphics.fillOval(getHeight(), 5, getHeight() - 10, getHeight() - 10);
+                    graphics.setColor(Color.BLACK);
+                    graphics.drawOval(getHeight(), 5, getHeight() - 10, getHeight() - 10);
+                }
+            } else if(Substance.getAlternateSelected().equals(substance)) {
+                graphics.setColor(Color.BLUE);
+                graphics.fillOval(5, 5, getHeight() - 10, getHeight() - 10);
+                graphics.setColor(Color.BLACK);
+                graphics.drawOval(5, 5, getHeight() - 10, getHeight() - 10);
+            }
         }
     }
 }

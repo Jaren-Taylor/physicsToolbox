@@ -35,6 +35,9 @@ public class Substance {
     public static final Substance PLANT = new Substance(new Color(50, 225, 50), "Plant", 1, 0.5, 1, State.SOLID, true);
 
     public static void loadSavedSubstances() {
+        CREATE_NEW.setId(-2);
+        NONE.setId(-1);
+        
         savedSubs.clear();
 
         Substance[] sampleSubs = new Substance[] { WALL, WATER, SAND, STONE, SALT, SALT_WATER, OIL, LAVA, METAL, FIRE, PLANT };
@@ -56,19 +59,20 @@ public class Substance {
         SAND.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.9));
         SALT.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.85));
         SALT.addReaction(new SubstanceInteraction(PLANT, NONE, ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.35));
-        SALT.toggleFlammableReaction(true, 0.7);
+        SALT.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.7));
         SALT_WATER.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.85));
         SALT_WATER.addReaction(new SubstanceInteraction(METAL, SAND, ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.5));
         SALT_WATER.addReaction(new SubstanceInteraction(FIRE, SALT, ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.6));
         OIL.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.98));
-        OIL.toggleFlammableReaction(true, 0.95);
+        OIL.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
         LAVA.addReaction(new SubstanceInteraction(NONE, STONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
         LAVA.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.25));
         METAL.addReaction(new SubstanceInteraction(LAVA, LAVA, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
-        FIRE.toggleDecayReaction(true, 0.9);
+        FIRE.addReaction(new SubstanceInteraction(NONE, NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.9));
+        FIRE.addReaction(new SubstanceInteraction(FIRE, NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.9));
         PLANT.addReaction(new SubstanceInteraction(NONE, PLANT, ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.3));
         PLANT.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
-        PLANT.toggleFlammableReaction(true, 0.95);
+        PLANT.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
 
         try {
             Iterator json = ((JSONArray) new JSONParser().parse(new FileReader("SavedSubstances.json"))).iterator();
@@ -227,6 +231,8 @@ public class Substance {
     public static void addCustomSubstance(Substance newSub) {
         newSub.setId(savedSubs.size());
         savedSubs.add(newSub);
+        
+        UI.setMenuOptions(getSavedSubstances());
     }
 
     public static void editCustomSubstance(int id, Substance newSub) {
@@ -236,6 +242,8 @@ public class Substance {
         
         newSub.setId(savedSubs.get(id).getId());
         savedSubs.set(id, newSub);
+        
+        UI.setMenuOptions(getSavedSubstances());
     }
 
     public static void removeCustomSubstance(Substance sub) {
@@ -246,13 +254,31 @@ public class Substance {
             throw new UnsupportedOperationException("Cannot remove sample substances.");
         }
 
-        // Decrementing the IDs of the substances that follow
-        for(int i = savedSubs.indexOf(sub) + 1; i < savedSubs.size(); i++) {
+        // Removing reactions and decrementing the IDs of the substances that follow
+        for(int i = 0; i < savedSubs.size(); i++) {
             Substance s = savedSubs.get(i);
-            s.setId(s.getId() - 1);
+            
+            for(SubstanceInteraction si: s.getReactions()) {
+                if(si.getReactant().equals(sub) || si.getProduct().equals(sub)) {
+                    s.removeReaction(si);
+                }
+            }
+            
+            if(i > savedSubs.indexOf(sub)) {
+                s.setId(s.getId() - 1);
+            }
+        }
+        
+        if(Substance.getCurrentlySelected().equals(sub)) {
+            Substance.setCurrentlySelected(WALL);
+        }
+        if(Substance.getAlternateSelected().equals(sub)) {
+            Substance.setAlternateSelected(WALL);
         }
 
         savedSubs.remove(sub);
+        
+        UI.setMenuOptions(getSavedSubstances());
     }
 
     public static Substance getCurrentlySelected() {
@@ -260,7 +286,11 @@ public class Substance {
     }
 
     public static void setCurrentlySelected(Substance s) {
-        selected[0] = s;
+        if(!s.equals(CREATE_NEW) && !s.equals(NONE)) {
+            selected[0] = s;
+        }
+        
+        UI.setEditorSubstance(s);
     }
 
     public static Substance getAlternateSelected() {
@@ -268,10 +298,12 @@ public class Substance {
     }
 
     public static void setAlternateSelected(Substance s) {
-        selected[1] = s;
+        if(!s.equals(CREATE_NEW) && !s.equals(NONE)) {
+            selected[1] = s;
+        }
     }
 
-    private int id = -3;      // Used to identify reactants/products in the JSON
+    private int id;      // Used to identify reactants/products in the JSON
     private Color color;      // Define using the RGB constructor only
     private String name;
     private double viscosity; // Range -> 0:1
@@ -302,13 +334,6 @@ public class Substance {
         reactions = new SubstanceInteraction[0];
         
         isSampleSub = isSample;
-        
-        if(this.equals(CREATE_NEW)) {
-            id = -2;
-        }
-        if(this.equals(NONE)) {
-            id = -1;
-        }
     }
 
     public int getId() {
@@ -316,10 +341,10 @@ public class Substance {
     }
 
     public void setId(int i) {
-        if(this.equals(CREATE_NEW)) {
+        if(i != -2 && this.equals(CREATE_NEW)) {
             throw new UnsupportedOperationException("Cannot change the ID of CREATE_NEW.");
         }
-        if(this.equals(NONE)) {
+        if(i != -1 && this.equals(NONE)) {
             throw new UnsupportedOperationException("Cannot change the ID of NONE.");
         }
         
@@ -421,57 +446,17 @@ public class Substance {
             si.getReactant().addReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
         }
     }
-
-    public void toggleDecayReaction(boolean turningOn, double volatility) {
-        SubstanceInteraction noneReaction = new SubstanceInteraction(NONE, NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
-        SubstanceInteraction selfReaction = new SubstanceInteraction(this, NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
-
-        if (turningOn) {
-            addReaction(noneReaction);
-            addReaction(selfReaction);
-        } else {
-            removeReaction(noneReaction);
-            removeReaction(selfReaction);
-        }
-    }
-
-    public void toggleFlammableReaction(boolean turningOn, double volatility) {
-        SubstanceInteraction reaction = new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, volatility);
-
-        if (turningOn) {
-            addReaction(reaction);
-        } else {
-            removeReaction(reaction);
-        }
-    }
-
+    
     public void removeReaction(SubstanceInteraction si) {
         if (reactions == null || reactions.length == 0) {
             return;
         }
 
         List<SubstanceInteraction> asList = new ArrayList<>(Arrays.asList(reactions));
-
-        for (SubstanceInteraction reaction : asList) {
-            if (reaction.equals(si)) {
-                asList.remove(reaction);
-            }
-        }
+        asList.remove(si);
 
         SubstanceInteraction[] asArray = new SubstanceInteraction[asList.size()];
         reactions = asList.toArray(asArray);
-
-        if (si.getReactant().getId() != -1 && si.getReactant().getId() != id) {
-            si.getReactant().removeReaction(new SubstanceInteraction(this, si.getProduct(), si.getReactantOutcome(), si.getSourceOutcome(), si.getVolatility()));
-        }
-    }
-
-    public void resetReactions() {
-        for (SubstanceInteraction reaction : reactions) {
-            reaction.getReactant().removeReaction(new SubstanceInteraction(this, reaction.getProduct(), reaction.getReactantOutcome(), reaction.getSourceOutcome(), reaction.getVolatility()));
-        }
-
-        reactions = new SubstanceInteraction[0];
     }
 
     public boolean reactsWith(int subId) {

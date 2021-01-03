@@ -18,11 +18,6 @@ public class Main extends JFrame {
     public static void main(String[] args) {
         Substance.loadSavedSubstances();
 
-        Substance[] allSubstances = Substance.getSavedSubstances();
-
-        Substance.setCurrentlySelected(allSubstances[0]);
-        Substance.setAlternateSelected(allSubstances[1]);
-
         JFrame frame = new JFrame("Physics Toolbox");
         frame.getContentPane().setLayout(null);
         
@@ -34,6 +29,8 @@ public class Main extends JFrame {
         
         frame.add(vp);
         frame.add(UI.getSubstanceEditorComponent(WINDOW_SIZE, VIEWPORT_SIZE.width));
+        frame.add(UI.getSubstanceMenuComponent(WINDOW_SIZE, VIEWPORT_SIZE));
+        UI.initializeSelectedSubstances();
 
         frame.addWindowListener(new WindowAdapter() {
             @Override
