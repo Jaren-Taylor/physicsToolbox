@@ -2,6 +2,9 @@ package com.mycompany.physicstoolbox;
 
 public class SubstanceInteraction {
     
+    // Used by the SubstanceEditor component for adding new reactions from the dropdown
+    public static SubstanceInteraction CREATE_NEW = new SubstanceInteraction(null, null, null, null, 0);
+    
     private Substance reactant, product;
     private double volatility;
     private ReactionOutcome sourceOutcome, reactantOutcome;
@@ -59,6 +62,15 @@ public class SubstanceInteraction {
     
     public void setVolatility(double v) {
         volatility = v;
+    }
+    
+    @Override
+    public String toString() {
+        if(this.equals(SubstanceInteraction.CREATE_NEW)) {
+            return "[Create New]";
+        }
+        
+        return reactant.getName() + " » " + product.getName();
     }
     
     public enum ReactionOutcome {

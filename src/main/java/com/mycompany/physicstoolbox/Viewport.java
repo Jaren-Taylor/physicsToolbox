@@ -21,13 +21,21 @@ public class Viewport extends JPanel {
     private static final int PIXEL_GRID_WIDTH = 400;
     private static final int PIXEL_GRID_HEIGHT = 300;
     
-    public static Viewport getInstance(Dimension size) {
-        if(size.width % PIXEL_GRID_WIDTH != 0 || size.height % PIXEL_GRID_HEIGHT != 0) {
-            throw new NumberFormatException("Dimensions must be divisible by (" + PIXEL_GRID_WIDTH + ", " + PIXEL_GRID_HEIGHT + ") for pixel mapping.");
-        }
-        
+    public static Viewport getInstance(int windowWidth, Dimension size) {
         if(instance == null) {
-            instance = new Viewport(size);
+            if(windowWidth <= 0) {
+                throw new NumberFormatException("Window must have a positive width.");
+            }
+            
+            if(size == null) {
+                throw new IllegalArgumentException("Viewport dimension cannot be null.");
+            }
+            
+            if(size.width % PIXEL_GRID_WIDTH != 0 || size.height % PIXEL_GRID_HEIGHT != 0) {
+                throw new NumberFormatException("Dimensions must be divisible by (" + PIXEL_GRID_WIDTH + ", " + PIXEL_GRID_HEIGHT + ") for pixel mapping.");
+            }
+            
+            instance = new Viewport(windowWidth, size);
         }
         return instance;
     }
@@ -40,7 +48,7 @@ public class Viewport extends JPanel {
     private Pixel[][] grid;
     private int brushSize;
     
-    private Viewport(Dimension size) {
+    private Viewport(int windowWidth, Dimension size) {
         super();
         backgroundColor = new Color(0, 0, 0);
         grid = new Pixel[PIXEL_GRID_HEIGHT][PIXEL_GRID_WIDTH];
@@ -54,7 +62,7 @@ public class Viewport extends JPanel {
             }
         }
         
-        setPreferredSize(size);
+        setBounds(windowWidth - (size.width + 20), 5, size.width, size.height);
         setBackground(backgroundColor);
         
         MouseListener listener = new MouseListener();
@@ -65,7 +73,15 @@ public class Viewport extends JPanel {
         TIMER.scheduleAtFixedRate(updater, 0, TIMER_SPEED);
     }
     
+    public Color getBackgroundColor() {
+        return backgroundColor;
+    }
+    
     public void setBackgroundColor(Color c) {
+        if(c == null) {
+            c = new Color(0, 0, 0);
+        }
+        
         backgroundColor = c;
         setBackground(c);
     }
@@ -129,28 +145,6 @@ public class Viewport extends JPanel {
         
         public void updateMouseStatus(int status) {
             mouseStatus = status;
-        }
-        
-        public void debugClick(int status) {
-            Substance[] subs = Substance.getSavedSubstances();
-            int index = 0;
-            int altIndex = 0;
-            for(int i = 0; i < subs.length; i++) {
-                if(subs[i].getId() == Substance.getCurrentlySelected().getId()) {
-                    index = i;
-                }
-            }
-            for(int i = 0; i < subs.length; i++) {
-                if(subs[i].getId() == Substance.getAlternateSelected().getId()) {
-                    altIndex = i;
-                }
-            }
-            
-            if(status == 3) {
-                Substance.setCurrentlySelected(index == subs.length - 1 ? subs[0] : subs[index + 1]);
-            } else if(status == 4) {
-                Substance.setAlternateSelected(altIndex == subs.length - 1 ? subs[0] : subs[altIndex + 1]);
-            }
         }
         
         // Logic that executes each tick to run the update
@@ -493,12 +487,6 @@ public class Viewport extends JPanel {
                 }
                 case MouseEvent.BUTTON3 ->  {
                     status = 2;
-                }
-                case 5 ->  {
-                    updater.debugClick(3);
-                }
-                case 4 ->  {
-                    updater.debugClick(4);
                 }
             }
             
