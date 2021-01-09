@@ -240,8 +240,15 @@ public class Substance {
             throw new UnsupportedOperationException("Cannot edit sample substances.");
         }
         
-        newSub.setId(savedSubs.get(id).getId());
+        newSub.setId(id);
         savedSubs.set(id, newSub);
+        
+        if(getCurrentlySelected().id == id) {
+            setCurrentlySelected(newSub);
+        }
+        if(getAlternateSelected().id == id) {
+            setAlternateSelected(newSub);
+        }
         
         UI.setMenuOptions(getSavedSubstances());
     }

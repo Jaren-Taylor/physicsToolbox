@@ -1,1 +1,1 @@
-[{"viscosity":0.19,"color":{"r":255,"b":157,"g":149},"density":1.0,"name":"Recursium","weight":1.0,"reactions":[{"productId":2,"reactantId":3,"sourceOutcome":2,"volatility":0.96,"reactantOutcome":2},{"productId":11,"reactantId":2,"sourceOutcome":1,"volatility":0.96,"reactantOutcome":2}],"state":2}]
+[{"viscosity":0.0,"color":{"r":102,"b":145,"g":255},"density":0.71,"name":"Totally different","weight":0.0,"reactions":[{"productId":6,"reactantId":-1,"sourceOutcome":1,"volatility":1.0,"reactantOutcome":2}],"state":3}]

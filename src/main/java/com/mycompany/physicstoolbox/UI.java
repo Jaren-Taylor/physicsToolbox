@@ -407,9 +407,6 @@ public abstract class UI {
             double density = (double) densitySlider.getValue() / 100.0;
             State state = solidRadio.isSelected() ? State.SOLID : liquidRadio.isSelected() ? State.LIQUID : State.GAS;
             
-            SubstanceInteraction[] reactions = new SubstanceInteraction[substanceInteractions.size()];
-            reactions = substanceInteractions.toArray(reactions);
-            
             Substance newSub = new Substance(color, name, viscosity, weight, density, state, false);
             
             if(flammableBox.isSelected()) {
@@ -621,7 +618,10 @@ public abstract class UI {
                 rctDestroyedRadio.setSelected(false);
                 
                 setSourceUnchangedDisabled(false);
+                
                 setReactantUnchangedDisabled(false);
+                setReactantChangedDisabled(false);
+                setReactantDestroyedDisabled(true);
                 
                 volatilitySlider.setValue(0);
             } else {
@@ -637,7 +637,9 @@ public abstract class UI {
                 rctDestroyedRadio.setSelected(selected.getReactantOutcome() == ReactionOutcome.DESTROYED);
                 
                 setSourceUnchangedDisabled(rctUnchangedRadio.isSelected());
+                
                 setReactantUnchangedDisabled(srcUnchangedRadio.isSelected());
+                setReactantDestroyedDisabled(selected.getReactant().equals(Substance.NONE));
                 
                 volatilitySlider.setValue((int) (selected.getVolatility() * 100));
             }
@@ -658,6 +660,7 @@ public abstract class UI {
             setSourceChangedDisabled(set);
             setSourceDestroyedDisabled(set);
             setReactantUnchangedDisabled(set);
+            setReactantChangedDisabled(set);
             setVolatilityDisabled(set);
             
             if(set) {
@@ -666,7 +669,6 @@ public abstract class UI {
                 setDensityDisabled(true);
                 setFlammableBoxDisabled(true);
                 setDecayBoxDisabled(true);
-                setReactantChangedDisabled(true);
                 setReactantDestroyedDisabled(true);
                 setDeleteReactionDisabled(true);
                 setSaveReactionDisabled(true);
@@ -695,15 +697,13 @@ public abstract class UI {
                 setDecayBoxDisabled(containsVoid);
                 
                 if(((Substance) reactantDropdown.getSelectedItem()).equals(Substance.NONE)) {
-                    rctUnchangedRadio.setSelected(true);
-                    rctChangedRadio.setSelected(false);
-                    rctDestroyedRadio.setSelected(false);
+                    if(rctDestroyedRadio.isSelected()) {
+                        rctDestroyedRadio.setSelected(false);
+                        rctChangedRadio.setSelected(true);
+                    }
                     
-                    setSourceUnchangedDisabled(true);
-                    setReactantChangedDisabled(true);
                     setReactantDestroyedDisabled(true);
                 } else {
-                    setReactantChangedDisabled(false);
                     setReactantDestroyedDisabled(false);
                 }
                 
@@ -900,20 +900,13 @@ public abstract class UI {
                     reactantPanel.setFillColor(reactant == null ? new Color(0, 0, 0, 0) : reactant.getColor());
                     
                     if(reactant.equals(Substance.NONE)) {
-                        rctUnchangedRadio.setSelected(true);
-                        rctChangedRadio.setSelected(false);
-                        rctDestroyedRadio.setSelected(false);
-                        
-                        if(srcUnchangedRadio.isSelected()) {
-                            srcUnchangedRadio.setSelected(false);
-                            srcChangedRadio.setSelected(true);
+                        if(rctDestroyedRadio.isSelected()) {
+                            rctDestroyedRadio.setSelected(false);
+                            rctChangedRadio.setSelected(true);
                         }
                         
-                        setSourceUnchangedDisabled(true);
-                        setReactantChangedDisabled(true);
                         setReactantDestroyedDisabled(true);
                     } else {
-                        setReactantChangedDisabled(false);
                         setReactantDestroyedDisabled(false);
                     }
                 } else if(src == productDropdown) {
