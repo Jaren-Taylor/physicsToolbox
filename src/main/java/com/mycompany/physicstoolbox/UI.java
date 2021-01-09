@@ -411,6 +411,7 @@ public abstract class UI {
             
             if(flammableBox.isSelected()) {
                 newSub.addReaction(new SubstanceInteraction(Substance.FIRE, Substance.FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, (double) flammableSlider.getValue() / 100.0));
+                newSub.addReaction(new SubstanceInteraction(Substance.LAVA, Substance.FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, (double) flammableSlider.getValue() / 100.0));
             }
             if(decayBox.isSelected()) {
                 newSub.addReaction(new SubstanceInteraction(Substance.NONE, Substance.NONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, (double) decaySlider.getValue() / 100.0));
@@ -454,21 +455,21 @@ public abstract class UI {
             
             reactionsDropdown.setModel(new DefaultComboBoxModel(getSubstanceInteractions()));
             
-            boolean containsFire = false;
+            boolean containsFireOrLava = false;
             boolean containsVoid = false;
             for(SubstanceInteraction si: substanceInteractions) {
                 if(si.equals(SubstanceInteraction.CREATE_NEW)) {
                     continue;
                 }
                 
-                if(si.getReactant().equals(Substance.FIRE)) {
-                    containsFire = true;
+                if(si.getReactant().equals(Substance.FIRE) || si.getReactant().equals(Substance.LAVA)) {
+                    containsFireOrLava = true;
                 } else if(si.getReactant().equals(Substance.NONE)) {
                     containsVoid = true;
                 }
             }
             
-            setFlammableBoxDisabled(containsFire);
+            setFlammableBoxDisabled(containsFireOrLava);
             setDecayBoxDisabled(containsVoid);
             
             substanceExclusions.add(reactant);
@@ -479,21 +480,21 @@ public abstract class UI {
         private void deleteReaction(SubstanceInteraction interaction) {
             substanceInteractions.remove(interaction);
             
-            boolean containsFire = false;
+            boolean containsFireOrLava = false;
             boolean containsVoid = false;
             for(SubstanceInteraction si: substanceInteractions) {
                 if(si.equals(SubstanceInteraction.CREATE_NEW)) {
                     continue;
                 }
                 
-                if(si.getReactant().equals(Substance.FIRE)) {
-                    containsFire = true;
+                if(si.getReactant().equals(Substance.FIRE) || si.getReactant().equals(Substance.LAVA)) {
+                    containsFireOrLava = true;
                 } else if(si.getReactant().equals(Substance.NONE)) {
                     containsVoid = true;
                 }
             }
             
-            setFlammableBoxDisabled(containsFire);
+            setFlammableBoxDisabled(containsFireOrLava);
             setDecayBoxDisabled(containsVoid);
             
             substanceExclusions.remove(interaction.getReactant());
@@ -555,7 +556,8 @@ public abstract class UI {
                 gasRadio.setSelected(subState == State.GAS);
                 
                 SubstanceInteraction[] subInteractions = selectedSubstance.getReactions();
-                SubstanceInteraction flammableReaction = null;
+                SubstanceInteraction flammableFireReaction = null;
+                SubstanceInteraction flammableLavaReaction = null;
                 SubstanceInteraction decayVoidReaction = null;
                 SubstanceInteraction decaySelfReaction = null;
                 
@@ -563,8 +565,10 @@ public abstract class UI {
                     substanceExclusions.add(si.getReactant());
                     
                     if(si.getReactant().equals(Substance.FIRE) && si.getProduct().equals(Substance.FIRE)) {
-                        flammableReaction = si;
-                        substanceExclusions.remove(Substance.FIRE);
+                        flammableFireReaction = si;
+                    }
+                    if(si.getReactant().equals(Substance.LAVA) && si.getProduct().equals(Substance.FIRE)) {
+                        flammableLavaReaction = si;
                     }
                     if(si.getReactant().equals(Substance.NONE) && si.getProduct().equals(Substance.NONE)) {
                         decayVoidReaction = si;
@@ -578,8 +582,11 @@ public abstract class UI {
                 substanceInteractions.add(SubstanceInteraction.CREATE_NEW);
                 substanceInteractions.addAll(Arrays.asList(subInteractions));
                 
-                if(flammableReaction != null) {
-                    substanceInteractions.remove(flammableReaction);
+                if(flammableFireReaction != null && flammableLavaReaction != null) {
+                    substanceInteractions.remove(flammableFireReaction);
+                    substanceInteractions.remove(flammableLavaReaction);
+                    substanceExclusions.remove(Substance.FIRE);
+                    substanceExclusions.remove(Substance.LAVA);
                 }
                 if(decayVoidReaction != null && decaySelfReaction != null) {
                     substanceInteractions.remove(decayVoidReaction);
@@ -587,8 +594,8 @@ public abstract class UI {
                     substanceExclusions.remove(Substance.NONE);
                 }
                 
-                flammableBox.setSelected(flammableReaction != null);
-                flammableSlider.setValue(flammableReaction == null ? 0 : (int) (flammableReaction.getVolatility() * 100));
+                flammableBox.setSelected(flammableFireReaction != null && flammableLavaReaction != null);
+                flammableSlider.setValue(flammableFireReaction == null || flammableLavaReaction == null ? 0 : (int) (flammableFireReaction.getVolatility() * 100));
                 decayBox.setSelected(decayVoidReaction != null && decaySelfReaction != null);
                 decaySlider.setValue(decayVoidReaction == null || decaySelfReaction == null ? 0 : (int) (decayVoidReaction.getVolatility() * 100));
                 
@@ -679,21 +686,21 @@ public abstract class UI {
                 setWeightDisabled(!liquidRadio.isSelected());
                 setDensityDisabled(solidRadio.isSelected());
                 
-                boolean containsFire = false;
+                boolean containsFireOrLava = false;
                 boolean containsVoid = false;
                 for(SubstanceInteraction si : substanceInteractions) {
                     if(si.equals(SubstanceInteraction.CREATE_NEW)) {
                         continue;
                     }
 
-                    if(si.getReactant().equals(Substance.FIRE) && !si.getProduct().equals(Substance.FIRE)) {
-                        containsFire = true;
+                    if((si.getReactant().equals(Substance.FIRE) || si.getReactant().equals(Substance.LAVA)) && !si.getProduct().equals(Substance.FIRE)) {
+                        containsFireOrLava = true;
                     } else if(si.getReactant().equals(Substance.NONE) && !si.getProduct().equals(Substance.NONE)) {
                         containsVoid = true;
                     }
                 }
                 
-                setFlammableBoxDisabled(containsFire);
+                setFlammableBoxDisabled(containsFireOrLava);
                 setDecayBoxDisabled(containsVoid);
                 
                 if(((Substance) reactantDropdown.getSelectedItem()).equals(Substance.NONE)) {
