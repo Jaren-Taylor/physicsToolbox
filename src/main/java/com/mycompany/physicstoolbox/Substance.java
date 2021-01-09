@@ -59,11 +59,11 @@ public class Substance {
         SAND.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.9));
         SALT.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.85));
         SALT.addReaction(new SubstanceInteraction(PLANT, NONE, ReactionOutcome.UNCHANGED, ReactionOutcome.DESTROYED, 0.35));
-        SALT.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.7));
+        SALT.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.85));
         SALT_WATER.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.DESTROYED, ReactionOutcome.CHANGED, 0.85));
         SALT_WATER.addReaction(new SubstanceInteraction(METAL, SAND, ReactionOutcome.UNCHANGED, ReactionOutcome.CHANGED, 0.5));
         SALT_WATER.addReaction(new SubstanceInteraction(FIRE, SALT, ReactionOutcome.CHANGED, ReactionOutcome.DESTROYED, 0.6));
-        OIL.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.98));
+        OIL.addReaction(new SubstanceInteraction(LAVA, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
         OIL.addReaction(new SubstanceInteraction(FIRE, FIRE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.95));
         LAVA.addReaction(new SubstanceInteraction(NONE, STONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.6));
         LAVA.addReaction(new SubstanceInteraction(LAVA, STONE, ReactionOutcome.CHANGED, ReactionOutcome.UNCHANGED, 0.25));
